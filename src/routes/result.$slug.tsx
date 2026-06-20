@@ -284,7 +284,7 @@ function ResultView({ r }: { r: ResultType }) {
               href="https://pf.kakao.com/_iKBxfK"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-4 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-kakao py-4 text-sm font-bold text-kakao-foreground shadow-[0_4px_12px_-4px_rgba(254,229,0,0.5)] transition active:scale-[0.98]"
             >
               <MessageCircle size={18} />
               이 결과 기준으로 상담하기
