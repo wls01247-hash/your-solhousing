@@ -86,7 +86,11 @@ function ResultView({ r }: { r: ResultType }) {
               <h1 className="mt-1 text-[26px] font-black leading-tight">{r.name}</h1>
               <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
             </div>
-            <Cat pose={2} className="h-24 w-24 shrink-0 -mt-2" float />
+            <div className="shrink-0 rounded-full bg-white/25 p-1 shadow-[inset_0_1px_2px_rgba(255,255,255,0.3)] backdrop-blur-sm">
+              <div className="rounded-full bg-white/90 p-1.5 shadow-sm">
+                <Cat pose={2} className="h-20 w-20" />
+              </div>
+            </div>
           </div>
         </motion.div>
 
