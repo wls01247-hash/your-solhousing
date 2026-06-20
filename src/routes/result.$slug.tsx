@@ -1,11 +1,10 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, normalizeScore } from "@/lib/quiz-data";
 import catFace from "@/assets/cat-face-only.png";
 import catFull from "@/assets/cat-1.png";
 import { Share2, MessageCircle, ExternalLink, Instagram } from "lucide-react";
-import { toPng } from "html-to-image";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getRecommendedListings, type ListingDTO } from "@/lib/listings.functions";
