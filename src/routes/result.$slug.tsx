@@ -1,0 +1,273 @@
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { resultTypes, type ResultType } from "@/lib/quiz-data";
+import { listings } from "@/lib/listings";
+import { Cat } from "@/components/Cat";
+
+export const Route = createFileRoute("/result/$slug")({
+  head: ({ params }) => {
+    const r = resultTypes[params.slug];
+    const title = r ? `${r.emoji} ${r.name} | 도쿄 자취 성향 테스트` : "결과 | 도쿄 자취 성향 테스트";
+    const desc = r ? `"${r.oneliner}" — 추천 동네: ${r.regions.join(", ")}` : "도쿄 자취 성향 결과";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+      ],
+    };
+  },
+  component: ResultPage,
+});
+
+function ResultPage() {
+  const { slug } = useParams({ from: "/result/$slug" });
+  const r: ResultType | undefined = resultTypes[slug];
+  if (!r) {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-6 text-center">
+        <div>
+          <p className="text-lg font-bold">결과를 찾을 수 없어요</p>
+          <Link to="/" className="mt-4 inline-block text-primary underline">처음으로</Link>
+        </div>
+      </main>
+    );
+  }
+  return <ResultView r={r} />;
+}
+
+function ResultView({ r }: { r: ResultType }) {
+  const [copied, setCopied] = useState(false);
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  const shareText = `${r.emoji} 나의 도쿄 자취 성향: ${r.name}\n"${r.oneliner}"\n\n나도 테스트 해보기 👇`;
+
+  const onShare = async () => {
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      try {
+        await (navigator as any).share({ title: r.name, text: shareText, url: shareUrl });
+        return;
+      } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {}
+  };
+
+  const recommended = r.listings
+    .map((id) => listings[id])
+    .filter(Boolean)
+    .slice(0, 3);
+
+  return (
+    <main className="relative min-h-screen bg-gradient-soft pb-16">
+      <div className="pointer-events-none absolute -top-24 -right-20 h-72 w-72 rounded-full bg-accent/25 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
+
+      <div className="relative mx-auto w-full max-w-md px-5 pt-6">
+        {/* hero card */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="overflow-hidden rounded-3xl bg-gradient-brand p-6 text-primary-foreground shadow-soft"
+        >
+          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest opacity-90">
+            <span>YOUR TOKYO TYPE</span>
+            <span>SOL HOUSING</span>
+          </div>
+          <div className="mt-4 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-4xl">{r.emoji}</div>
+              <h1 className="mt-1 truncate text-3xl font-black leading-tight">{r.name}</h1>
+              <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
+            </div>
+            <Cat pose={2} className="h-24 w-24 shrink-0 -mt-2" float />
+          </div>
+        </motion.div>
+
+        {/* risk gauge */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mt-4 rounded-3xl bg-card p-5 shadow-card"
+        >
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-muted-foreground">이사 위험도</span>
+            <span className="text-primary">{r.risk}%</span>
+          </div>
+          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-muted">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${r.risk}%` }}
+              transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
+              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-soft)] to-[var(--accent-gold)]"
+            />
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-foreground/80">{r.description}</p>
+        </motion.div>
+
+        {/* triggers */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="mt-4 rounded-3xl bg-card p-5 shadow-card"
+        >
+          <h2 className="text-sm font-black text-foreground">왜 위험한가? 실제 이사 트리거</h2>
+          <ul className="mt-3 space-y-2">
+            {r.triggers.map((t, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
+                <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+        </motion.div>
+
+        {/* regions */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-4 rounded-3xl bg-card p-5 shadow-card"
+        >
+          <div className="flex items-center gap-2">
+            <Cat pose={3} className="h-10 w-10" />
+            <h2 className="text-sm font-black text-foreground">당신에게 어울리는 동네 TOP3</h2>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {r.regions.map((reg) => (
+              <span
+                key={reg}
+                className="rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary"
+              >
+                #{reg}
+              </span>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* listings */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
+          className="mt-6"
+        >
+          <h2 className="text-base font-black text-foreground">추천 매물 TOP3</h2>
+          <p className="mt-1 text-xs text-muted-foreground">솔하우징 큐레이션 · Mock 데이터</p>
+          <div className="mt-3 flex flex-col gap-3">
+            {recommended.map((l) => (
+              <ListingCard key={l.id} l={l} />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* share */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.35 }}
+          className="mt-8 rounded-3xl bg-card p-5 shadow-card"
+        >
+          <h2 className="text-sm font-black text-foreground">결과 공유하기</h2>
+          <button
+            onClick={onShare}
+            className="mt-3 w-full rounded-2xl bg-gradient-brand py-3.5 text-center text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
+          >
+            {copied ? "✓ 링크 복사됨!" : "📤 친구에게 공유하기"}
+          </button>
+
+          <p className="mt-5 text-xs font-bold text-muted-foreground">상담 문의</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <a
+              href="https://pf.kakao.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 rounded-2xl py-3 text-sm font-bold transition active:scale-[0.98]"
+              style={{ backgroundColor: "#FEE500", color: "#000000" }}
+            >
+              <span>💬</span> 카카오톡
+            </a>
+            <a
+              href="https://line.me/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 rounded-2xl py-3 text-sm font-bold transition active:scale-[0.98]"
+              style={{ backgroundColor: "#06C755", color: "#FFFFFF" }}
+            >
+              <span>💚</span> LINE
+            </a>
+          </div>
+        </motion.div>
+
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <Cat pose={4} className="h-20 w-20" float />
+          <Link
+            to="/"
+            className="rounded-full border-2 border-primary/30 bg-white/70 px-5 py-2.5 text-sm font-bold text-primary backdrop-blur"
+          >
+            🔄 다시 테스트하기
+          </Link>
+          <p className="text-[11px] text-muted-foreground">© SOL HOUSING — 도쿄 자취 큐레이션</p>
+        </div>
+      </div>
+      <ScrollReset />
+    </main>
+  );
+}
+
+function ScrollReset() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  return null;
+}
+
+function ListingCard({ l }: { l: import("@/lib/listings").Listing }) {
+  return (
+    <motion.article
+      whileTap={{ scale: 0.98 }}
+      className="overflow-hidden rounded-3xl bg-card shadow-card"
+    >
+      <div className="aspect-[16/10] w-full overflow-hidden bg-muted">
+        <img
+          src={l.image}
+          alt={l.title}
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
+      </div>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="min-w-0 truncate text-base font-extrabold text-foreground">{l.title}</h3>
+          <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+            {l.layout}
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {l.station}역 도보 {l.walkMin}분 · {l.area}㎡
+        </p>
+        <div className="mt-3 flex items-end justify-between">
+          <div>
+            <p className="text-[11px] text-muted-foreground">월세</p>
+            <p className="text-lg font-black text-primary">
+              ¥{l.rent.toLocaleString()}
+              <span className="ml-1 text-[11px] font-medium text-muted-foreground">
+                +관리비 ¥{l.maintenance.toLocaleString()}
+              </span>
+            </p>
+          </div>
+          <button className="rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background active:scale-95">
+            상세보기
+          </button>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
