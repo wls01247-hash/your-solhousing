@@ -143,7 +143,7 @@ function ResultView({ r }: { r: ResultType }) {
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Cat pose={3} className="h-9 w-9" />
+              <Cat pose={1} className="h-9 w-9" />
             </div>
             <h2 className="text-sm font-black text-foreground">당신에게 어울리는 동네 TOP3</h2>
           </div>
@@ -184,7 +184,7 @@ function ResultView({ r }: { r: ResultType }) {
         >
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/15">
-              <Cat pose={4} className="h-7 w-7" />
+              <Cat pose={1} className="h-7 w-7" />
             </div>
             <h2 className="text-sm font-black text-foreground">다음 단계</h2>
           </div>
