@@ -247,9 +247,9 @@ function ListingCard({ l }: { l: import("@/lib/listings").Listing }) {
   return (
     <motion.article
       whileTap={{ scale: 0.98 }}
-      className="flex gap-3 overflow-hidden rounded-2xl bg-card p-3 shadow-card"
+      className="flex gap-3 overflow-hidden rounded-2xl border border-primary/10 bg-white p-3 shadow-[0_8px_24px_-6px_rgba(46,125,50,0.18)]"
     >
-      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted">
+      <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-muted">
         <img
           src={l.image}
           alt={l.title}
@@ -257,24 +257,26 @@ function ListingCard({ l }: { l: import("@/lib/listings").Listing }) {
           className="h-full w-full object-cover"
         />
       </div>
-      <div className="flex flex-1 flex-col justify-center min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="min-w-0 truncate text-sm font-extrabold text-foreground">{l.title}</h3>
-          <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-            {l.layout}
-          </span>
+      <div className="flex flex-1 flex-col justify-between min-w-0 py-0.5">
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 truncate text-[15px] font-extrabold text-foreground">{l.title}</h3>
+            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+              {l.layout}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {l.station}역 도보 {l.walkMin}분 · {l.area}㎡
+          </p>
         </div>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
-          {l.station}역 도보 {l.walkMin}분 · {l.area}㎡
-        </p>
-        <div className="mt-2 flex items-center justify-between">
-          <p className="text-sm font-black text-primary">
+        <div className="flex items-center justify-between">
+          <p className="text-base font-black text-primary">
             ¥{l.rent.toLocaleString()}
             <span className="ml-1 text-[10px] font-medium text-muted-foreground">
               +관 ¥{l.maintenance.toLocaleString()}
             </span>
           </p>
-          <button className="rounded-full bg-foreground px-3 py-1.5 text-[11px] font-bold text-background active:scale-95">
+          <button className="rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-sm active:scale-95">
             상세보기
           </button>
         </div>
