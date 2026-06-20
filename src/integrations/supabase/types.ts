@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      listings: {
+        Row: {
+          address: string | null
+          contract_status: string
+          created_at: string
+          image_url: string | null
+          maintenance_fee_yen: number | null
+          move_in: string | null
+          property_url: string
+          raw_status: string | null
+          rent_yen: number | null
+          room_type: string | null
+          size_sqm: number | null
+          station_line: string | null
+          station_name: string | null
+          thema: number | null
+          title: string | null
+          uid: number
+          updated_at: string
+          walk_minutes: number | null
+          year_built: number | null
+        }
+        Insert: {
+          address?: string | null
+          contract_status?: string
+          created_at?: string
+          image_url?: string | null
+          maintenance_fee_yen?: number | null
+          move_in?: string | null
+          property_url: string
+          raw_status?: string | null
+          rent_yen?: number | null
+          room_type?: string | null
+          size_sqm?: number | null
+          station_line?: string | null
+          station_name?: string | null
+          thema?: number | null
+          title?: string | null
+          uid: number
+          updated_at?: string
+          walk_minutes?: number | null
+          year_built?: number | null
+        }
+        Update: {
+          address?: string | null
+          contract_status?: string
+          created_at?: string
+          image_url?: string | null
+          maintenance_fee_yen?: number | null
+          move_in?: string | null
+          property_url?: string
+          raw_status?: string | null
+          rent_yen?: number | null
+          room_type?: string | null
+          size_sqm?: number | null
+          station_line?: string | null
+          station_name?: string | null
+          thema?: number | null
+          title?: string | null
+          uid?: number
+          updated_at?: string
+          walk_minutes?: number | null
+          year_built?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
