@@ -39,10 +39,31 @@ function ResultPage() {
   return <ResultView r={r} />;
 }
 
+function useStoredScores(): Record<Category, number> | null {
+  const [scores, setScores] = useState<Record<Category, number> | null>(null);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("tokyo-quiz-scores");
+      if (raw) setScores(JSON.parse(raw));
+    } catch {}
+  }, []);
+  return scores;
+}
+
 function ResultView({ r }: { r: ResultType }) {
   const [copied, setCopied] = useState(false);
+  const rawScores = useStoredScores();
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
   const shareText = `${r.emoji} 나의 도쿄 자취 성향: ${r.name}\n"${r.oneliner}"\n\n나도 테스트 해보기 👇`;
+
+  const scores = useMemo(() => {
+    if (!rawScores) return null;
+    const entries = (Object.entries(rawScores) as [Category, number][]).map(
+      ([cat, raw]) => ({ cat, name: CATEGORY_SCORE_NAME[cat], value: normalizeScore(cat, raw), raw })
+    );
+    const sorted = [...entries].sort((a, b) => b.value - a.value);
+    return { entries, top: sorted[0] };
+  }, [rawScores]);
 
   const onShare = async () => {
     if (typeof navigator !== "undefined" && (navigator as any).share) {
