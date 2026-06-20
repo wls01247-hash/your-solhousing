@@ -38,11 +38,24 @@ export const getRecommendedListings = createServerFn({ method: "GET" })
       )
       .eq("type_slug", data.type)
       .order("updated_at", { ascending: false })
-      .limit(data.limit ?? 3);
+      // 같은 건물의 호실 중복을 걸러내기 위해 넉넉히 가져온 뒤 dedup 처리
+      .limit((data.limit ?? 3) * 20);
 
     if (error) {
       console.error("[getRecommendedListings]", error);
       return [];
     }
-    return (rows ?? []) as ListingDTO[];
+
+    // 중복 판정: 1) address 동일 → 같은 건물  2) address 없으면 title 동일
+    // updated_at desc 정렬되어 있으므로 먼저 들어온 것(=최신)만 유지
+    const seen = new Set<string>();
+    const deduped: ListingDTO[] = [];
+    for (const row of (rows ?? []) as ListingDTO[]) {
+      const key = (row.address?.trim() || row.title?.trim() || `uid:${row.uid}`).toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(row);
+      if (deduped.length >= (data.limit ?? 3)) break;
+    }
+    return deduped;
   });
