@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { getAllStations, type LifeAreaSlug } from "@/lib/life-areas";
 
 export interface ListingDTO {
   uid: number;
@@ -26,9 +25,6 @@ const inputSchema = z.object({
 export const getRecommendedListings = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<ListingDTO[]> => {
-    const stations = getAllStations(data.type as LifeAreaSlug);
-    if (stations.length === 0) return [];
-
     const supabase = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_PUBLISHABLE_KEY!,
@@ -36,12 +32,11 @@ export const getRecommendedListings = createServerFn({ method: "GET" })
     );
 
     const { data: rows, error } = await supabase
-      .from("listings")
+      .from("recommended_listings")
       .select(
         "uid, title, address, station_name, station_line, walk_minutes, rent_yen, maintenance_fee_yen, room_type, size_sqm, image_url, property_url",
       )
-      .in("station_name", stations)
-      .eq("contract_status", "available")
+      .eq("type_slug", data.type)
       .order("updated_at", { ascending: false })
       .limit(data.limit ?? 3);
 
