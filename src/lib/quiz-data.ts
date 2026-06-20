@@ -243,91 +243,29 @@ export const resultTypes: Record<string, ResultType> = {
     regions: ["오이즈미가쿠엔", "후나바시", "카와사키"],
     listings: ["l10", "l11", "l12"],
   },
-  "MOVE+LIFE": {
-    slug: "MOVE+LIFE",
-    emoji: "🚇☕",
-    name: "도심 탐험가형",
-    risk: 92,
-    oneliner: "부동산 앱을 인스타처럼 보는 사람",
-    description:
-      "역세권 + 핫한 동네. 둘 다 포기 못함. 매일 새로운 가게를 발견하고 싶어하는 도심형 유목민.",
-    triggers: [
-      "신상 카페·팝업스토어 오픈 알림",
-      "주거지 한 곳에 1년 이상 머무르기 힘듦",
-      "동네 친구보다 동네 가게에 더 친함",
-    ],
-    regions: ["에비스", "나카메구로", "지유가오카"],
-    listings: ["l13", "l14", "l15"],
-  },
-  "SAVE+HOME": {
-    slug: "SAVE+HOME",
-    emoji: "💸🏠",
-    name: "가성비 실속형",
-    risk: 29,
-    oneliner: "감성보다 평당 가격",
-    description:
-      "넓고, 싸고, 조용하면 끝. 역에서 좀 멀어도 자전거 있으면 OK. 실용주의자의 동네 사랑.",
-    triggers: [
-      "역세권 프리미엄 거절 가능",
-      "1K보다 1DK·1LDK 평수 우선",
-      "치안과 슈퍼 가격 먼저 확인",
-    ],
-    regions: ["니시카사이", "마치다", "카와고에"],
-    listings: ["l16", "l17", "l18"],
-  },
-  "MOVE+HOME": {
-    slug: "MOVE+HOME",
-    emoji: "🚇🏠",
-    name: "출퇴근 효율러",
-    risk: 58,
-    oneliner: "멀어도 싫고 좁아도 싫음",
-    description:
-      "환승 적고 + 집 넓고. 효율을 위해서라면 약간의 월세 상승은 받아들이는 균형 추구형.",
-    triggers: [
-      "터미널역까지 직통 노선 필수",
-      "1K는 너무 좁아서 거절",
-      "출근 도어투도어 40분이 마지노선",
-    ],
-    regions: ["키타센주", "미조노쿠치", "츠나시마"],
-    listings: ["l19", "l20", "l21"],
-  },
-  "LIFE+HOME": {
-    slug: "LIFE+HOME",
-    emoji: "☕🏠",
-    name: "감성 집순이형",
-    risk: 44,
-    oneliner: "집에서 살고 카페에서 충전함",
-    description:
-      "평일엔 집, 주말엔 동네. 멀리 가지 않아도 충분히 행복한 로컬 라이프 애호가.",
-    triggers: [
-      "도보 10분 안에 카페 3곳 이상",
-      "집 인테리어와 동네 분위기 둘 다 중요",
-      "이사 갈 때 동네부터 정한 뒤 매물 검색",
-    ],
-    regions: ["키치조지", "코엔지", "나카노"],
-    listings: ["l22", "l23", "l24"],
-  },
+export const CATEGORY_SCORE_NAME: Record<Category, string> = {
+  MOVE: "환승력",
+  SAVE: "절약력",
+  LIFE: "감성력",
+  HOME: "집순력",
 };
 
-const ALLOWED_COMBOS = new Set([
-  "MOVE+LIFE",
-  "SAVE+HOME",
-  "MOVE+HOME",
-  "LIFE+HOME",
-]);
+const MAX_SCORES: Record<Category, number> = {
+  MOVE: 44,
+  SAVE: 47,
+  HOME: 47,
+  LIFE: 47,
+};
+
+export function normalizeScore(cat: Category, raw: number): number {
+  return Math.min(100, Math.round((raw / MAX_SCORES[cat]) * 100));
+}
 
 export function computeResult(scores: Record<Category, number>): ResultType {
   const sorted = (Object.entries(scores) as [Category, number][]).sort(
     (a, b) => b[1] - a[1],
   );
-  const [top, second] = sorted;
-  const gap = top[1] - second[1];
-  if (gap <= 5) {
-    const combo = `${top[0]}+${second[0]}`;
-    const reverse = `${second[0]}+${top[0]}`;
-    if (ALLOWED_COMBOS.has(combo)) return resultTypes[combo];
-    if (ALLOWED_COMBOS.has(reverse)) return resultTypes[reverse];
-  }
+  const [top] = sorted;
   return resultTypes[top[0]];
 }
 
