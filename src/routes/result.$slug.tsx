@@ -186,25 +186,6 @@ function ResultView({ r }: { r: ResultType }) {
             <p className="mt-3 text-sm leading-relaxed text-foreground/80">{r.description}</p>
           </motion.div>
         )}
-        </div>
-
-        {/* triggers */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          className="mt-4 rounded-3xl bg-card p-5 shadow-card"
-        >
-          <h2 className="text-sm font-black text-foreground">왜 위험한가? 실제 이사 트리거</h2>
-          <ul className="mt-3 space-y-2">
-            {r.triggers.map((t, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
-                <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                <span>{t}</span>
-              </li>
-            ))}
-          </ul>
-        </motion.div>
 
         {/* regions */}
         <motion.div
@@ -229,6 +210,25 @@ function ResultView({ r }: { r: ResultType }) {
               </span>
             ))}
           </div>
+        </motion.div>
+        </div>
+
+        {/* triggers */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="mt-4 rounded-3xl bg-card p-5 shadow-card"
+        >
+          <h2 className="text-sm font-black text-foreground">왜 위험한가? 실제 이사 트리거</h2>
+          <ul className="mt-3 space-y-2">
+            {r.triggers.map((t, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
+                <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
         </motion.div>
 
         {/* listings */}
