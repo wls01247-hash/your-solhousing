@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, normalizeScore } from "@/lib/quiz-data";
 import catFace from "@/assets/cat-face-only.png";
 import catFull from "@/assets/cat-1.png";
-import { Share2, MessageCircle, ExternalLink } from "lucide-react";
+import { Share2, MessageCircle, ExternalLink, Instagram } from "lucide-react";
 import { toPng } from "html-to-image";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -307,6 +307,16 @@ function ResultView({ r }: { r: ResultType }) {
             >
               <ExternalLink size={16} />
               더 다양한 집보기
+            </a>
+
+            <a
+              href="https://www.instagram.com/solhousing/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#feda75] via-[#d62976] to-[#4f5bd5] py-3.5 text-sm font-bold text-white shadow-soft transition active:scale-[0.98]"
+            >
+              <Instagram size={16} />
+              솔하우징 인스타 팔로우
             </a>
           </div>
         </motion.div>
