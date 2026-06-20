@@ -243,6 +243,8 @@ export const resultTypes: Record<string, ResultType> = {
     regions: ["오이즈미가쿠엔", "후나바시", "카와사키"],
     listings: ["l10", "l11", "l12"],
   },
+};
+
 export const CATEGORY_SCORE_NAME: Record<Category, string> = {
   MOVE: "환승력",
   SAVE: "절약력",
