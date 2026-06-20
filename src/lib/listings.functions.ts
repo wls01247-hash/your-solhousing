@@ -34,7 +34,7 @@ export const getRecommendedListings = createServerFn({ method: "GET" })
     const { data: rows, error } = await supabase
       .from("recommended_listings")
       .select(
-        "uid, title, address, station_name, station_line, walk_minutes, rent_yen, maintenance_fee_yen, room_type, size_sqm, image_url, property_url",
+        "uid, title, address, station_name, station_line, walk_minutes, rent_yen, maintenance_fee_yen, room_type, size_sqm, image_url, property_url, life_area_id",
       )
       .eq("type_slug", data.type)
       .order("updated_at", { ascending: false })
@@ -46,15 +46,24 @@ export const getRecommendedListings = createServerFn({ method: "GET" })
       return [];
     }
 
-    // 중복 판정: 1) address 동일 → 같은 건물  2) address 없으면 title 동일
-    // updated_at desc 정렬되어 있으므로 먼저 들어온 것(=최신)만 유지
-    const seen = new Set<string>();
+    // Dedup 규칙 (updated_at desc 정렬 → 먼저 본 것이 최신):
+    //  1) 같은 건물(주소 동일, 없으면 타이틀 동일) → 1건만
+    //  2) 같은 생활권(life_area_id 동일) → 1건만
+    const seenBuilding = new Set<string>();
+    const seenArea = new Set<string>();
     const deduped: ListingDTO[] = [];
-    for (const row of (rows ?? []) as ListingDTO[]) {
-      const key = (row.address?.trim() || row.title?.trim() || `uid:${row.uid}`).toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      deduped.push(row);
+    type Row = ListingDTO & { life_area_id?: string | null };
+    for (const row of (rows ?? []) as Row[]) {
+      const buildingKey = (row.address?.trim() || row.title?.trim() || `uid:${row.uid}`).toLowerCase();
+      if (seenBuilding.has(buildingKey)) continue;
+      const areaKey = row.life_area_id ?? "";
+      if (areaKey && seenArea.has(areaKey)) continue;
+      seenBuilding.add(buildingKey);
+      if (areaKey) seenArea.add(areaKey);
+      // life_area_id는 내부 dedup용 → 클라이언트로 노출하지 않음
+      const { life_area_id: _omit, ...dto } = row;
+      void _omit;
+      deduped.push(dto);
       if (deduped.length >= (data.limit ?? 3)) break;
     }
     return deduped;
