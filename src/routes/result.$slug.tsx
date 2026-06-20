@@ -214,7 +214,7 @@ function ResultView({ r }: { r: ResultType }) {
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 py-3.5 text-sm font-bold text-primary transition active:scale-[0.98]"
             >
               <ExternalLink size={16} />
-              이 조건으로 더 다양한 집보기
+              더 다양한 집보기
             </a>
           </div>
         </motion.div>
