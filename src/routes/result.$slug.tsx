@@ -141,8 +141,10 @@ function ResultView({ r }: { r: ResultType }) {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mt-4 rounded-3xl bg-card p-5 shadow-card"
         >
-          <div className="flex items-center gap-2">
-            <Cat pose={3} className="h-10 w-10" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Cat pose={3} className="h-9 w-9" />
+            </div>
             <h2 className="text-sm font-black text-foreground">당신에게 어울리는 동네 TOP3</h2>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
