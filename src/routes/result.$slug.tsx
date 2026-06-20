@@ -70,36 +70,37 @@ function ResultView({ r }: { r: ResultType }) {
   }, [rawScores]);
 
   const onShare = async () => {
-    if (typeof navigator !== "undefined" && (navigator as any).share) {
-      try {
-        await (navigator as any).share({ title: r.name, text: shareText, url: shareUrl });
-        return;
-      } catch {}
-    }
-    try {
-      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {}
-  };
-
-  const onCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 1800);
-    } catch {}
-  };
-
-  const onSavePng = async () => {
-    if (!captureRef.current || saving) return;
-    setSaving(true);
+    if (!captureRef.current) return;
+    setSharing(true);
     try {
       const dataUrl = await toPng(captureRef.current, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "#ffffff",
       });
+
+      // Try native share with image file
+      if (typeof navigator !== "undefined" && navigator.canShare) {
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], `tokyo-type-${r.slug}.png`, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: `${r.emoji} 나의 도쿄 자취 성향: ${r.name}`,
+              text: `${shareText}\n${shareUrl}`,
+              files: [file],
+            });
+            return;
+          }
+        } catch {}
+      }
+
+      // Fallback: copy link + auto-download image
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {}
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `tokyo-type-${r.slug}.png`;
@@ -107,13 +108,8 @@ function ResultView({ r }: { r: ResultType }) {
     } catch (e) {
       console.error(e);
     } finally {
-      setSaving(false);
+      setSharing(false);
     }
-  };
-
-  const onKakao = () => {
-    // 카카오톡 공유 자리 (SDK 키 연동 예정)
-    alert("카카오톡 공유는 곧 연결됩니다 :)");
   };
 
   const recommended = r.listings
