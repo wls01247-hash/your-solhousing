@@ -153,7 +153,7 @@ function ResultView({ r }: { r: ResultType }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-4 rounded-3xl bg-card p-5 shadow-card"
+            className="mt-4 rounded-3xl bg-card p-4 shadow-card"
           >
             <h2 className="text-sm font-black text-foreground">나의 도쿄 자취 능력치</h2>
             <div className="mt-4 space-y-3.5">
