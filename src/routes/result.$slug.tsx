@@ -182,7 +182,7 @@ function ResultView({ r }: { r: ResultType }) {
         >
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/15">
-              <img src={catFace} alt="마스코트" className="h-4.5 w-4.5 object-contain" draggable={false} />
+              <img src={catFace} alt="마스코트" className="h-4 w-4 object-contain" draggable={false} />
             </div>
             <h2 className="text-sm font-black text-foreground">다음 단계</h2>
           </div>
