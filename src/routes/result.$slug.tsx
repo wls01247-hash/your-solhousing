@@ -88,7 +88,7 @@ function ResultView({ r }: { r: ResultType }) {
             </div>
             <div className="shrink-0 rounded-full bg-white/25 p-1 shadow-[inset_0_1px_2px_rgba(255,255,255,0.3)] backdrop-blur-sm">
               <div className="rounded-full bg-white/90 p-1.5 shadow-sm">
-                <Cat pose={2} className="h-20 w-20" />
+                <Cat pose={1} className="h-20 w-20" />
               </div>
             </div>
           </div>
@@ -143,7 +143,7 @@ function ResultView({ r }: { r: ResultType }) {
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Cat pose={3} className="h-9 w-9" />
+              <Cat pose={1} className="h-9 w-9" />
             </div>
             <h2 className="text-sm font-black text-foreground">당신에게 어울리는 동네 TOP3</h2>
           </div>
@@ -184,7 +184,7 @@ function ResultView({ r }: { r: ResultType }) {
         >
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/15">
-              <Cat pose={4} className="h-7 w-7" />
+              <Cat pose={1} className="h-7 w-7" />
             </div>
             <h2 className="text-sm font-black text-foreground">다음 단계</h2>
           </div>
@@ -247,9 +247,9 @@ function ListingCard({ l }: { l: import("@/lib/listings").Listing }) {
   return (
     <motion.article
       whileTap={{ scale: 0.98 }}
-      className="overflow-hidden rounded-3xl bg-card shadow-card"
+      className="flex gap-3 overflow-hidden rounded-2xl bg-card p-3 shadow-card"
     >
-      <div className="aspect-[16/10] w-full overflow-hidden bg-muted">
+      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted">
         <img
           src={l.image}
           alt={l.title}
@@ -257,27 +257,24 @@ function ListingCard({ l }: { l: import("@/lib/listings").Listing }) {
           className="h-full w-full object-cover"
         />
       </div>
-      <div className="p-4">
+      <div className="flex flex-1 flex-col justify-center min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="min-w-0 truncate text-base font-extrabold text-foreground">{l.title}</h3>
-          <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+          <h3 className="min-w-0 truncate text-sm font-extrabold text-foreground">{l.title}</h3>
+          <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
             {l.layout}
           </span>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
           {l.station}역 도보 {l.walkMin}분 · {l.area}㎡
         </p>
-        <div className="mt-3 flex items-end justify-between">
-          <div>
-            <p className="text-[11px] text-muted-foreground">월세</p>
-            <p className="text-lg font-black text-primary">
-              ¥{l.rent.toLocaleString()}
-              <span className="ml-1 text-[11px] font-medium text-muted-foreground">
-                +관리비 ¥{l.maintenance.toLocaleString()}
-              </span>
-            </p>
-          </div>
-          <button className="rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background active:scale-95">
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-sm font-black text-primary">
+            ¥{l.rent.toLocaleString()}
+            <span className="ml-1 text-[10px] font-medium text-muted-foreground">
+              +관 ¥{l.maintenance.toLocaleString()}
+            </span>
+          </p>
+          <button className="rounded-full bg-foreground px-3 py-1.5 text-[11px] font-bold text-background active:scale-95">
             상세보기
           </button>
         </div>
