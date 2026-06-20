@@ -15,6 +15,28 @@
 create extension if not exists "pgcrypto";
 
 -- ---------------------------------------------------------------------
+-- 공통: 역명 정규화 함수
+--   - 전각/반각 공백 제거
+--   - 끝의 "駅" 제거
+--   - 소문자화
+--   예) "  中野駅 " → "中野",  "中野駅　" → "中野"
+-- IMMUTABLE 로 선언해 generated column 에서 사용 가능
+-- ---------------------------------------------------------------------
+create or replace function public.normalize_station_name(s text)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when s is null then null
+    else regexp_replace(
+           regexp_replace(lower(translate(s, E' \t\u3000', '')), '駅+$', ''),
+           '\s+', '', 'g'
+         )
+  end
+$$;
+
+-- ---------------------------------------------------------------------
 -- 공통: updated_at 자동 갱신 트리거 함수
 -- ---------------------------------------------------------------------
 create or replace function public.set_updated_at()
@@ -51,13 +73,17 @@ create table if not exists public.listings (
   raw_status           text,
   thema                integer,
   created_at           timestamptz not null default now(),
-  updated_at           timestamptz not null default now()
+  updated_at           timestamptz not null default now(),
+  station_name_normalized text generated always as
+    (public.normalize_station_name(station_name)) stored
 );
 
 create index if not exists listings_station_status_updated_idx
   on public.listings (station_name, contract_status, updated_at desc);
 create index if not exists listings_status_updated_idx
   on public.listings (contract_status, updated_at desc);
+create index if not exists listings_station_norm_idx
+  on public.listings (station_name_normalized, contract_status, updated_at desc);
 
 drop trigger if exists trg_listings_updated_at on public.listings;
 create trigger trg_listings_updated_at
@@ -140,11 +166,15 @@ create table if not exists public.life_area_stations (
   station_name_ko  text,                 -- "나카노" (선택)
   display_order    integer not null default 0,
   created_at       timestamptz not null default now(),
+  station_name_normalized text generated always as
+    (public.normalize_station_name(station_name_ja)) stored,
   unique (life_area_id, station_name_ja)
 );
 
 create index if not exists las_area_idx    on public.life_area_stations (life_area_id);
 create index if not exists las_station_idx on public.life_area_stations (station_name_ja);
+create index if not exists las_station_norm_idx
+  on public.life_area_stations (station_name_normalized);
 
 grant select on public.life_area_stations to anon, authenticated;
 grant all    on public.life_area_stations to service_role;
@@ -169,7 +199,8 @@ select
   s.station_name_ko,
   l.*
 from public.listings l
-join public.life_area_stations s on s.station_name_ja = l.station_name
+join public.life_area_stations s
+  on s.station_name_normalized = l.station_name_normalized
 join public.life_areas la        on la.id = s.life_area_id
 where l.contract_status = 'available';
 
