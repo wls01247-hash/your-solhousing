@@ -86,11 +86,7 @@ function ResultView({ r }: { r: ResultType }) {
               <h1 className="mt-1 text-[26px] font-black leading-tight">{r.name}</h1>
               <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
             </div>
-            <div className="shrink-0 rounded-full bg-white/25 p-1 shadow-[inset_0_1px_2px_rgba(255,255,255,0.3)] backdrop-blur-sm">
-              <div className="flex h-[5.5rem] w-[5.5rem] items-center justify-center overflow-hidden rounded-full bg-white/90 shadow-sm">
-                <img src={catFace} alt="마스코트" className="h-[4.5rem] w-[4.5rem] object-contain" draggable={false} />
-              </div>
-            </div>
+            <img src={catFace} alt="마스코트" className="h-[5.5rem] w-[5.5rem] shrink-0 object-contain" draggable={false} />
           </div>
         </motion.div>
 
