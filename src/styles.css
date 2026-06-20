@@ -49,6 +49,7 @@
   --color-brand-soft: var(--brand-soft);
   --color-accent-gold: var(--accent-gold);
   --color-kakao: var(--kakao);
+  --color-kakao-foreground: var(--kakao-foreground);
   --color-line: var(--line);
   --font-display: "Zen Maru Gothic", "Gowun Dodum", system-ui, sans-serif;
   --font-sans: "Gowun Dodum", "Zen Maru Gothic", system-ui, sans-serif;
@@ -61,6 +62,7 @@
   --brand-soft: oklch(0.74 0.14 145);     /* #66BB6A ish */
   --accent-gold: oklch(0.83 0.16 80);     /* #FFB300 */
   --kakao: oklch(0.92 0.16 95);           /* #FEE500 */
+  --kakao-foreground: oklch(0.25 0.02 260); /* #191919 */
   --line: oklch(0.7 0.18 150);            /* #06C755 */
 
   --background: oklch(0.985 0.012 145);   /* #F5FBF5 */
