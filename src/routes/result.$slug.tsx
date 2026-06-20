@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, normalizeScore } from "@/lib/quiz-data";
 import { listings } from "@/lib/listings";
-import catFace from "@/assets/cat-face.png";
+import catFace from "@/assets/cat-face-only.png";
 import catFull from "@/assets/cat-1.png";
 import { Share2, MessageCircle, ExternalLink } from "lucide-react";
 
