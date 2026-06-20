@@ -118,7 +118,7 @@ function ResultView({ r }: { r: ResultType }) {
   const fetchRecommended = useServerFn(getRecommendedListings);
   const { data: recommended, isLoading: loadingListings } = useQuery({
     queryKey: ["recommended-listings", r.slug],
-    queryFn: () => fetchRecommended({ data: { type: r.slug as LifeAreaSlug, limit: 6 } }),
+    queryFn: () => fetchRecommended({ data: { type: r.slug as LifeAreaSlug, limit: 3 } }),
     staleTime: 5 * 60 * 1000,
   });
 
