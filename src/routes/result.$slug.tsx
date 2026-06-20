@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { resultTypes, type ResultType } from "@/lib/quiz-data";
+import { useEffect, useMemo, useState } from "react";
+import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, normalizeScore } from "@/lib/quiz-data";
 import { listings } from "@/lib/listings";
 import catFace from "@/assets/cat-face.png";
 import { Share2, MessageCircle, ExternalLink } from "lucide-react";
