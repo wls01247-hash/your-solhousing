@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, normalizeScore } from "@/lib/quiz-data";
 import { listings } from "@/lib/listings";
 import catFace from "@/assets/cat-face-only.png";
 import catFull from "@/assets/cat-1.png";
-import { Share2, MessageCircle, ExternalLink } from "lucide-react";
+import { Share2, MessageCircle, ExternalLink, Download, Link as LinkIcon } from "lucide-react";
+import { toPng } from "html-to-image";
 
 export const Route = createFileRoute("/result/$slug")({
   head: ({ params }) => {
@@ -53,6 +54,9 @@ function useStoredScores(): Record<Category, number> | null {
 
 function ResultView({ r }: { r: ResultType }) {
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
   const rawScores = useStoredScores();
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
   const shareText = `${r.emoji} 나의 도쿄 자취 성향: ${r.name}\n"${r.oneliner}"\n\n나도 테스트 해보기 👇`;
@@ -80,6 +84,39 @@ function ResultView({ r }: { r: ResultType }) {
     } catch {}
   };
 
+  const onCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1800);
+    } catch {}
+  };
+
+  const onSavePng = async () => {
+    if (!captureRef.current || saving) return;
+    setSaving(true);
+    try {
+      const dataUrl = await toPng(captureRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `tokyo-type-${r.slug}.png`;
+      a.click();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onKakao = () => {
+    // 카카오톡 공유 자리 (SDK 키 연동 예정)
+    alert("카카오톡 공유는 곧 연결됩니다 :)");
+  };
+
   const recommended = r.listings
     .map((id) => listings[id])
     .filter(Boolean)
@@ -91,7 +128,8 @@ function ResultView({ r }: { r: ResultType }) {
       <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
 
       <div className="relative mx-auto w-full max-w-md px-5 pt-6">
-        {/* hero card */}
+        {/* capture-able card area (인스타 스토리용) */}
+        <div ref={captureRef} className="rounded-3xl">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -153,6 +191,7 @@ function ResultView({ r }: { r: ResultType }) {
             <p className="mt-3 text-sm leading-relaxed text-foreground/80">{r.description}</p>
           </motion.div>
         )}
+        </div>
 
         {/* triggers */}
         <motion.div
@@ -224,15 +263,42 @@ function ResultView({ r }: { r: ResultType }) {
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15">
               <img src={catFace} alt="마스코트" className="h-7 w-7 object-contain" draggable={false} />
             </div>
-            <h2 className="text-sm font-black text-foreground">다음 단계</h2>
+            <h2 className="text-sm font-black text-foreground">결과 공유하기</h2>
           </div>
 
           <div className="mt-4 flex flex-col gap-2.5">
             <button
-              onClick={onShare}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
+              onClick={onSavePng}
+              disabled={saving}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98] disabled:opacity-60"
             >
-              <Share2 size={16} />
+              <Download size={16} />
+              {saving ? "이미지 저장 중..." : "결과 카드 PNG 저장"}
+            </button>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                onClick={onCopyLink}
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-primary/20 bg-primary/5 py-3 text-xs font-bold text-primary transition active:scale-[0.98]"
+              >
+                <LinkIcon size={14} />
+                {linkCopied ? "복사 완료!" : "링크 복사"}
+              </button>
+              <button
+                onClick={onKakao}
+                className="flex items-center justify-center gap-1.5 rounded-2xl py-3 text-xs font-bold transition active:scale-[0.98]"
+                style={{ backgroundColor: "#FEE500", color: "#000000" }}
+              >
+                <MessageCircle size={14} />
+                카카오톡 공유
+              </button>
+            </div>
+
+            <button
+              onClick={onShare}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-white py-3 text-xs font-bold text-foreground/80 transition active:scale-[0.98]"
+            >
+              <Share2 size={14} />
               {copied ? "링크 복사 완료!" : "친구한테 공유하기"}
             </button>
 
@@ -240,8 +306,7 @@ function ResultView({ r }: { r: ResultType }) {
               href="https://pf.kakao.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition active:scale-[0.98]"
-              style={{ backgroundColor: "#FEE500", color: "#000000" }}
+              className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
             >
               <MessageCircle size={16} />
               이 결과 기준으로 상담하기
