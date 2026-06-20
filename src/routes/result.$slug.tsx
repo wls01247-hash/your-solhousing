@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { resultTypes, type ResultType } from "@/lib/quiz-data";
+import { useEffect, useMemo, useState } from "react";
+import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, normalizeScore } from "@/lib/quiz-data";
 import { listings } from "@/lib/listings";
 import catFace from "@/assets/cat-face.png";
 import { Share2, MessageCircle, ExternalLink } from "lucide-react";
@@ -39,10 +39,31 @@ function ResultPage() {
   return <ResultView r={r} />;
 }
 
+function useStoredScores(): Record<Category, number> | null {
+  const [scores, setScores] = useState<Record<Category, number> | null>(null);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("tokyo-quiz-scores");
+      if (raw) setScores(JSON.parse(raw));
+    } catch {}
+  }, []);
+  return scores;
+}
+
 function ResultView({ r }: { r: ResultType }) {
   const [copied, setCopied] = useState(false);
+  const rawScores = useStoredScores();
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
   const shareText = `${r.emoji} 나의 도쿄 자취 성향: ${r.name}\n"${r.oneliner}"\n\n나도 테스트 해보기 👇`;
+
+  const scores = useMemo(() => {
+    if (!rawScores) return null;
+    const entries = (Object.entries(rawScores) as [Category, number][]).map(
+      ([cat, raw]) => ({ cat, name: CATEGORY_SCORE_NAME[cat], value: normalizeScore(cat, raw), raw })
+    );
+    const sorted = [...entries].sort((a, b) => b.value - a.value);
+    return { entries, top: sorted[0] };
+  }, [rawScores]);
 
   const onShare = async () => {
     if (typeof navigator !== "undefined" && (navigator as any).share) {
@@ -92,27 +113,45 @@ function ResultView({ r }: { r: ResultType }) {
           </div>
         </motion.div>
 
-        {/* risk gauge */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mt-4 rounded-3xl bg-card p-5 shadow-card"
-        >
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-muted-foreground">이사 위험도</span>
-            <span className="text-primary">{r.risk}%</span>
-          </div>
-          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-muted">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${r.risk}%` }}
-              transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
-              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-soft)] to-[var(--accent-gold)]"
-            />
-          </div>
-          <p className="mt-3 text-sm leading-relaxed text-foreground/80">{r.description}</p>
-        </motion.div>
+        {/* score bars */}
+        {scores && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mt-4 rounded-3xl bg-card p-5 shadow-card"
+          >
+            <h2 className="text-sm font-black text-foreground">나의 도쿄 자취 능력치</h2>
+            <div className="mt-4 space-y-3.5">
+              {scores.entries.map((s) => {
+                const isTop = s.cat === scores.top.cat;
+                return (
+                  <div key={s.cat}>
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className={isTop ? "text-primary" : "text-muted-foreground"}>{s.name}</span>
+                      <span className={isTop ? "text-primary" : "text-foreground/70"}>{s.value}점</span>
+                    </div>
+                    <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${s.value}%` }}
+                        transition={{ duration: 0.9, delay: 0.2 + 0.1, ease: "easeOut" }}
+                        className={`h-full rounded-full ${isTop ? "bg-gradient-to-r from-[var(--brand-soft)] to-[var(--accent-gold)]" : "bg-primary/25"}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {scores.top && (
+              <div className="mt-4 rounded-2xl bg-primary/10 px-4 py-3 text-center">
+                <p className="text-xs font-bold text-muted-foreground">가장 높은 유형</p>
+                <p className="mt-1 text-base font-black text-primary">{scores.top.name}</p>
+              </div>
+            )}
+            <p className="mt-3 text-sm leading-relaxed text-foreground/80">{r.description}</p>
+          </motion.div>
+        )}
 
         {/* triggers */}
         <motion.div
