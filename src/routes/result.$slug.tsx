@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { resultTypes, type ResultType } from "@/lib/quiz-data";
 import { listings } from "@/lib/listings";
 import { Cat } from "@/components/Cat";
+import { Share2, MessageCircle, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/result/$slug")({
   head: ({ params }) => {
