@@ -114,7 +114,7 @@ export const getRecommendedListings = createServerFn({ method: "GET" })
       { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
     );
 
-    const limit = data.limit ?? 6;
+    const limit = data.limit ?? 3;
     const cat = category(data.type);
 
     async function fetchByTypes(types: string[]): Promise<Row[]> {
