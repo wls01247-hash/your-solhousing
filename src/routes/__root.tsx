@@ -80,11 +80,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "도쿄에서 당신이 살게 될 동네는? | 도쿄 자취 성향 테스트" },
       { name: "description", content: "15개 질문으로 알아보는 나의 도쿄 주거 성향. 추천 동네와 매물까지 한번에." },
       { name: "author", content: "솔하우징" },
-      { property: "og:title", content: "🏠 도쿄에서 당신이 살게 될 동네는?" },
-      { property: "og:description", content: "나는 어디에 살아야 행복할까 — 2분이면 끝나는 도쿄 자취 성향 테스트" },
+      { property: "og:title", content: "도쿄에서 당신이 살게 될 동네는? | 도쿄 자취 성향 테스트" },
+      { property: "og:description", content: "15개 질문으로 알아보는 나의 도쿄 주거 성향. 추천 동네와 매물까지 한번에." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "도쿄에서 당신이 살게 될 동네는? | 도쿄 자취 성향 테스트" },
+      { name: "twitter:description", content: "15개 질문으로 알아보는 나의 도쿄 주거 성향. 추천 동네와 매물까지 한번에." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/0uY18Yw46thWWj83zVUGD1By4gP2/social-images/social-1781938172446-KakaoTalk_20260613_165921691_02.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/0uY18Yw46thWWj83zVUGD1By4gP2/social-images/social-1781938172446-KakaoTalk_20260613_165921691_02.webp" },
     ],
     links: [
       {
