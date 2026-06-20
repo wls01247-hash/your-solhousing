@@ -5,7 +5,7 @@ import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, norma
 import { listings } from "@/lib/listings";
 import catFace from "@/assets/cat-face-only.png";
 import catFull from "@/assets/cat-1.png";
-import { Share2, MessageCircle, ExternalLink, Download, Link as LinkIcon } from "lucide-react";
+import { Share2, MessageCircle, ExternalLink } from "lucide-react";
 import { toPng } from "html-to-image";
 
 export const Route = createFileRoute("/result/$slug")({
@@ -54,8 +54,7 @@ function useStoredScores(): Record<Category, number> | null {
 
 function ResultView({ r }: { r: ResultType }) {
   const [copied, setCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
   const rawScores = useStoredScores();
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -71,36 +70,37 @@ function ResultView({ r }: { r: ResultType }) {
   }, [rawScores]);
 
   const onShare = async () => {
-    if (typeof navigator !== "undefined" && (navigator as any).share) {
-      try {
-        await (navigator as any).share({ title: r.name, text: shareText, url: shareUrl });
-        return;
-      } catch {}
-    }
-    try {
-      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {}
-  };
-
-  const onCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 1800);
-    } catch {}
-  };
-
-  const onSavePng = async () => {
-    if (!captureRef.current || saving) return;
-    setSaving(true);
+    if (!captureRef.current) return;
+    setSharing(true);
     try {
       const dataUrl = await toPng(captureRef.current, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "#ffffff",
       });
+
+      // Try native share with image file
+      if (typeof navigator !== "undefined" && navigator.canShare) {
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], `tokyo-type-${r.slug}.png`, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: `${r.emoji} 나의 도쿄 자취 성향: ${r.name}`,
+              text: `${shareText}\n${shareUrl}`,
+              files: [file],
+            });
+            return;
+          }
+        } catch {}
+      }
+
+      // Fallback: copy link + auto-download image
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {}
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `tokyo-type-${r.slug}.png`;
@@ -108,13 +108,8 @@ function ResultView({ r }: { r: ResultType }) {
     } catch (e) {
       console.error(e);
     } finally {
-      setSaving(false);
+      setSharing(false);
     }
-  };
-
-  const onKakao = () => {
-    // 카카오톡 공유 자리 (SDK 키 연동 예정)
-    alert("카카오톡 공유는 곧 연결됩니다 :)");
   };
 
   const recommended = r.listings
@@ -268,45 +263,19 @@ function ResultView({ r }: { r: ResultType }) {
 
           <div className="mt-4 flex flex-col gap-2.5">
             <button
-              onClick={onSavePng}
-              disabled={saving}
+              onClick={onShare}
+              disabled={sharing}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98] disabled:opacity-60"
             >
-              <Download size={16} />
-              {saving ? "이미지 저장 중..." : "결과 카드 PNG 저장"}
-            </button>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                onClick={onCopyLink}
-                className="flex items-center justify-center gap-1.5 rounded-2xl border border-primary/20 bg-primary/5 py-3 text-xs font-bold text-primary transition active:scale-[0.98]"
-              >
-                <LinkIcon size={14} />
-                {linkCopied ? "복사 완료!" : "링크 복사"}
-              </button>
-              <button
-                onClick={onKakao}
-                className="flex items-center justify-center gap-1.5 rounded-2xl py-3 text-xs font-bold transition active:scale-[0.98]"
-                style={{ backgroundColor: "#FEE500", color: "#000000" }}
-              >
-                <MessageCircle size={14} />
-                카카오톡 공유
-              </button>
-            </div>
-
-            <button
-              onClick={onShare}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-white py-3 text-xs font-bold text-foreground/80 transition active:scale-[0.98]"
-            >
-              <Share2 size={14} />
-              {copied ? "링크 복사 완료!" : "친구한테 공유하기"}
+              <Share2 size={16} />
+              {sharing ? "공유 준비 중..." : copied ? "복사 완료!" : "친구한테 공유하기"}
             </button>
 
             <a
               href="https://pf.kakao.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
             >
               <MessageCircle size={16} />
               이 결과 기준으로 상담하기
