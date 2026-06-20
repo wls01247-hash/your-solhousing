@@ -113,27 +113,45 @@ function ResultView({ r }: { r: ResultType }) {
           </div>
         </motion.div>
 
-        {/* risk gauge */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mt-4 rounded-3xl bg-card p-5 shadow-card"
-        >
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-muted-foreground">이사 위험도</span>
-            <span className="text-primary">{r.risk}%</span>
-          </div>
-          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-muted">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${r.risk}%` }}
-              transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
-              className="h-full rounded-full bg-gradient-to-r from-[var(--brand-soft)] to-[var(--accent-gold)]"
-            />
-          </div>
-          <p className="mt-3 text-sm leading-relaxed text-foreground/80">{r.description}</p>
-        </motion.div>
+        {/* score bars */}
+        {scores && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mt-4 rounded-3xl bg-card p-5 shadow-card"
+          >
+            <h2 className="text-sm font-black text-foreground">나의 도쿄 자취 능력치</h2>
+            <div className="mt-4 space-y-3.5">
+              {scores.entries.map((s) => {
+                const isTop = s.cat === scores.top.cat;
+                return (
+                  <div key={s.cat}>
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className={isTop ? "text-primary" : "text-muted-foreground"}>{s.name}</span>
+                      <span className={isTop ? "text-primary" : "text-foreground/70"}>{s.value}점</span>
+                    </div>
+                    <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${s.value}%` }}
+                        transition={{ duration: 0.9, delay: 0.2 + 0.1, ease: "easeOut" }}
+                        className={`h-full rounded-full ${isTop ? "bg-gradient-to-r from-[var(--brand-soft)] to-[var(--accent-gold)]" : "bg-primary/25"}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {scores.top && (
+              <div className="mt-4 rounded-2xl bg-primary/10 px-4 py-3 text-center">
+                <p className="text-xs font-bold text-muted-foreground">가장 높은 유형</p>
+                <p className="mt-1 text-base font-black text-primary">{scores.top.name}</p>
+              </div>
+            )}
+            <p className="mt-3 text-sm leading-relaxed text-foreground/80">{r.description}</p>
+          </motion.div>
+        )}
 
         {/* triggers */}
         <motion.div
