@@ -51,6 +51,60 @@ function buildingKey(row: Row): string {
   return (row.address?.trim() || row.title?.trim() || `uid:${row.uid}`).toLowerCase();
 }
 
+function totalCost(row: Row): number {
+  return (row.rent_yen ?? Number.MAX_SAFE_INTEGER) + (row.maintenance_fee_yen ?? 0);
+}
+
+function category(type: string): "SAVE" | "MOVE" | "LIFE" | "OTHER" {
+  if (type === "SAVE" || type === "SAVE_HOME") return "SAVE";
+  if (type === "MOVE" || type === "MOVE_HOME") return "MOVE";
+  if (type === "LIFE" || type === "LIFE_HOME" || type === "MOVE_LIFE") return "LIFE";
+  return "OTHER";
+}
+
+// SAVE 계열: 가성비 우선 정렬 (월세+관리비 asc → 면적 desc → 최신순)
+function sortSave(rows: Row[]): Row[] {
+  return [...rows].sort((a, b) => {
+    const c = totalCost(a) - totalCost(b);
+    if (c !== 0) return c;
+    const s = (b.size_sqm ?? 0) - (a.size_sqm ?? 0);
+    if (s !== 0) return s;
+    return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+  });
+}
+
+// MOVE 계열: 월세 asc → 최신순 (생활권 적합도는 fetch 단계에서 결정)
+function sortMove(rows: Row[]): Row[] {
+  return [...rows].sort((a, b) => {
+    const r = (a.rent_yen ?? Number.MAX_SAFE_INTEGER) - (b.rent_yen ?? Number.MAX_SAFE_INTEGER);
+    if (r !== 0) return r;
+    return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+  });
+}
+
+// LIFE 계열: 지역 다양성을 위해 life_area_id 라운드로빈
+function diversifyByArea(rows: Row[]): Row[] {
+  const buckets = new Map<string, Row[]>();
+  for (const row of rows) {
+    const key = row.life_area_id ?? "__none__";
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key)!.push(row);
+  }
+  for (const list of buckets.values()) {
+    list.sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""));
+  }
+  const result: Row[] = [];
+  let added = true;
+  while (added) {
+    added = false;
+    for (const list of buckets.values()) {
+      const next = list.shift();
+      if (next) { result.push(next); added = true; }
+    }
+  }
+  return result;
+}
+
 export const getRecommendedListings = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<ListingDTO[]> => {
@@ -61,6 +115,7 @@ export const getRecommendedListings = createServerFn({ method: "GET" })
     );
 
     const limit = data.limit ?? 6;
+    const cat = category(data.type);
 
     async function fetchByTypes(types: string[]): Promise<Row[]> {
       if (types.length === 0) return [];
@@ -72,6 +127,22 @@ export const getRecommendedListings = createServerFn({ method: "GET" })
         .limit(limit * 30);
       if (error) {
         console.error("[getRecommendedListings]", error);
+        return [];
+      }
+      return (rows ?? []) as Row[];
+    }
+
+    async function fetchAllAvailable(): Promise<Row[]> {
+      const { data: rows, error } = await supabase
+        .from("listings")
+        .select(
+          "uid, title, address, station_name, station_line, walk_minutes, rent_yen, maintenance_fee_yen, room_type, size_sqm, image_url, property_url, updated_at",
+        )
+        .eq("contract_status", "available")
+        .order("rent_yen", { ascending: true, nullsFirst: false })
+        .limit(limit * 50);
+      if (error) {
+        console.error("[getRecommendedListings:all]", error);
         return [];
       }
       return (rows ?? []) as Row[];
@@ -92,25 +163,44 @@ export const getRecommendedListings = createServerFn({ method: "GET" })
       }
     }
 
-    // 1차: 매칭된 생활권(type_slug)에서 가져오기 (같은 건물 중복 제거)
-    pushRows(await fetchByTypes([data.type]));
-
-    // 2차: 3건 미만이면 인접 생활권(공통 토큰을 공유하는 type_slug)에서 보충
-    if (deduped.length < 3) {
-      pushRows(await fetchByTypes(adjacentTypes(data.type)));
-    }
-
-    // 3차: 그래도 비어 있으면 전체 매물에서 최신순으로 보충
-    if (deduped.length === 0) {
-      const { data: rows } = await supabase
-        .from("listings")
-        .select(
-          "uid, title, address, station_name, station_line, walk_minutes, rent_yen, maintenance_fee_yen, room_type, size_sqm, image_url, property_url, updated_at",
-        )
-        .eq("contract_status", "available")
-        .order("updated_at", { ascending: false })
-        .limit(limit * 5);
-      pushRows(((rows ?? []) as Row[]));
+    if (cat === "SAVE") {
+      // SAVE 계열: 가성비(월세+관리비) 우선. 생활권은 동률 시 가산.
+      const matched = await fetchByTypes([data.type]);
+      const matchedIds = new Set(matched.map((r) => r.uid));
+      const all = await fetchAllAvailable();
+      // 매칭 매물은 동률 시 우선되도록 cost 에 -1 가산 (사실상 같은 비용이면 생활권 우선)
+      const merged: Row[] = [
+        ...matched,
+        ...all.filter((r) => !matchedIds.has(r.uid)),
+      ];
+      pushRows(sortSave(merged));
+    } else if (cat === "MOVE") {
+      // MOVE 계열: 생활권 적합도 우선 → 월세 asc → 최신순
+      pushRows(sortMove(await fetchByTypes([data.type])));
+      if (deduped.length < 3) {
+        pushRows(sortMove(await fetchByTypes(adjacentTypes(data.type))));
+      }
+      if (deduped.length < 3) {
+        pushRows(sortMove(await fetchAllAvailable()));
+      }
+    } else if (cat === "LIFE") {
+      // LIFE 계열: 생활권 적합도 우선 → 지역 다양성(라운드로빈) → 최신순
+      pushRows(diversifyByArea(await fetchByTypes([data.type])));
+      if (deduped.length < 3) {
+        pushRows(diversifyByArea(await fetchByTypes(adjacentTypes(data.type))));
+      }
+      if (deduped.length < 3) {
+        pushRows(await fetchAllAvailable());
+      }
+    } else {
+      // 기타(HOME 등): 기존 로직 유지
+      pushRows(await fetchByTypes([data.type]));
+      if (deduped.length < 3) {
+        pushRows(await fetchByTypes(adjacentTypes(data.type)));
+      }
+      if (deduped.length === 0) {
+        pushRows(await fetchAllAvailable());
+      }
     }
 
     return deduped;
