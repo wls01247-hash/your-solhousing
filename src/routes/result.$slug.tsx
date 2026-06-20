@@ -5,7 +5,7 @@ import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, norma
 import { listings } from "@/lib/listings";
 import catFace from "@/assets/cat-face-only.png";
 import catFull from "@/assets/cat-1.png";
-import { Share2, MessageCircle, ExternalLink, Download, Link as LinkIcon } from "lucide-react";
+import { Share2, MessageCircle, ExternalLink } from "lucide-react";
 import { toPng } from "html-to-image";
 
 export const Route = createFileRoute("/result/$slug")({
