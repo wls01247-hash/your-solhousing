@@ -20,7 +20,7 @@ interface ParsedListing {
   move_in: string | null;
   image_url: string | null;
   property_url: string;
-  contract_status: "available" | "contracted";
+  contract_status: "available" | "pending" | "closed";
   raw_status: string | null;
   thema: number;
 }
@@ -89,10 +89,11 @@ function parseListPage(html: string): ParsedListing[] {
     const size_sqm = sizeMatch ? parseFloat(sizeMatch[1]) : null;
     const move_in = c3lines[3] || null;
 
-    // Col 4: status — "모집중 募集中" or "계약완료"
+    // Col 4: status — "모집중 募集中" / "申込中 / 商談中" / "계약완료 / 契約済"
     const status_raw = cols[3] ? clean(cols[3]) : "";
-    const contract_status: "available" | "contracted" =
-      /계약완료|契約済|成約/.test(status_raw) ? "contracted" : "available";
+    let contract_status: "available" | "pending" | "closed" = "available";
+    if (/계약완료|契約済|成約|募集終了/.test(status_raw)) contract_status = "closed";
+    else if (/申込中|商談中|相談中/.test(status_raw)) contract_status = "pending";
 
     out.push({
       uid,
@@ -178,14 +179,35 @@ async function runSync(maxPages: number) {
     upserted += batch.length;
   }
 
+  // Soft-close: any listing in DB (for this thema) that we did NOT see this run → 'closed'
+  // Only run when the crawl looks healthy (no fetch error and we saw >= MIN_SEEN listings)
+  // to avoid wiping the catalog when SolHousing temporarily blocks us.
+  const MIN_SEEN = 50;
+  let softClosed = 0;
+  let softCloseError: string | null = null;
+  if (!lastError && !upsertError && seen.size >= MIN_SEEN) {
+    const seenUids = Array.from(seen);
+    const { count, error } = await supabaseAdmin
+      .from("listings")
+      .update({ contract_status: "closed", updated_at: new Date().toISOString() }, { count: "exact" })
+      .eq("thema", 1)
+      .neq("contract_status", "closed")
+      .not("uid", "in", `(${seenUids.join(",")})`);
+    if (error) softCloseError = error.message;
+    else softClosed = count ?? 0;
+  }
+
   return {
     pages_fetched: pagesFetched,
     listings_parsed: all.length,
     listings_upserted: upserted,
     available: all.filter((l) => l.contract_status === "available").length,
-    contracted: all.filter((l) => l.contract_status === "contracted").length,
+    pending: all.filter((l) => l.contract_status === "pending").length,
+    closed_in_feed: all.filter((l) => l.contract_status === "closed").length,
+    soft_closed: softClosed,
     fetch_error: lastError,
     upsert_error: upsertError,
+    soft_close_error: softCloseError,
   };
 }
 
