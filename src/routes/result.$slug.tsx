@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { resultTypes, type ResultType } from "@/lib/quiz-data";
 import { listings } from "@/lib/listings";
 import { Cat } from "@/components/Cat";
+import { Share2, MessageCircle, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/result/$slug")({
   head: ({ params }) => {
@@ -85,7 +86,11 @@ function ResultView({ r }: { r: ResultType }) {
               <h1 className="mt-1 text-[26px] font-black leading-tight">{r.name}</h1>
               <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
             </div>
-            <Cat pose={2} className="h-24 w-24 shrink-0 -mt-2" float />
+            <div className="shrink-0 rounded-full bg-white/25 p-1 shadow-[inset_0_1px_2px_rgba(255,255,255,0.3)] backdrop-blur-sm">
+              <div className="rounded-full bg-white/90 p-1.5 shadow-sm">
+                <Cat pose={2} className="h-20 w-20" />
+              </div>
+            </div>
           </div>
         </motion.div>
 
@@ -136,8 +141,10 @@ function ResultView({ r }: { r: ResultType }) {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mt-4 rounded-3xl bg-card p-5 shadow-card"
         >
-          <div className="flex items-center gap-2">
-            <Cat pose={3} className="h-10 w-10" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Cat pose={3} className="h-9 w-9" />
+            </div>
             <h2 className="text-sm font-black text-foreground">당신에게 어울리는 동네 TOP3</h2>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -168,51 +175,58 @@ function ResultView({ r }: { r: ResultType }) {
           </div>
         </motion.div>
 
-        {/* share */}
+        {/* bottom actions */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35 }}
           className="mt-8 rounded-3xl bg-card p-5 shadow-card"
         >
-          <h2 className="text-sm font-black text-foreground">결과 공유하기</h2>
-          <button
-            onClick={onShare}
-            className="mt-3 w-full rounded-2xl bg-gradient-brand py-3.5 text-center text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
-          >
-            {copied ? "✓ 링크 복사됨!" : "📤 친구에게 공유하기"}
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/15">
+              <Cat pose={4} className="h-7 w-7" />
+            </div>
+            <h2 className="text-sm font-black text-foreground">다음 단계</h2>
+          </div>
 
-          <p className="mt-5 text-xs font-bold text-muted-foreground">상담 문의</p>
-          <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="mt-4 flex flex-col gap-2.5">
+            <button
+              onClick={onShare}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
+            >
+              <Share2 size={16} />
+              {copied ? "링크 복사 완료!" : "친구한테 공유하기"}
+            </button>
+
             <a
               href="https://pf.kakao.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 rounded-2xl py-3 text-sm font-bold transition active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition active:scale-[0.98]"
               style={{ backgroundColor: "#FEE500", color: "#000000" }}
             >
-              <span>💬</span> 카카오톡
+              <MessageCircle size={16} />
+              카카오톡 상담하기
             </a>
+
             <a
-              href="https://line.me/"
+              href="https://www.sol-housing.jp/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 rounded-2xl py-3 text-sm font-bold transition active:scale-[0.98]"
-              style={{ backgroundColor: "#06C755", color: "#FFFFFF" }}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 py-3.5 text-sm font-bold text-primary transition active:scale-[0.98]"
             >
-              <span>💚</span> LINE
+              <ExternalLink size={16} />
+              더 자세한 매물보기
             </a>
           </div>
         </motion.div>
 
-        <div className="mt-8 flex flex-col items-center gap-3">
-          <Cat pose={4} className="h-20 w-20" float />
+        <div className="mt-6 flex flex-col items-center gap-2 pb-8">
           <Link
             to="/"
-            className="rounded-full border-2 border-primary/30 bg-white/70 px-5 py-2.5 text-sm font-bold text-primary backdrop-blur"
+            className="text-xs font-bold text-muted-foreground underline underline-offset-2"
           >
-            🔄 다시 테스트하기
+            테스트 다시 하기
           </Link>
           <p className="text-[11px] text-muted-foreground">© SOL HOUSING — 도쿄 자취 큐레이션</p>
         </div>
