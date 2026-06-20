@@ -280,33 +280,14 @@ function ResultView({ r }: { r: ResultType }) {
           </div>
 
           <div className="mt-4 flex flex-col gap-2.5">
-            <button
-              onClick={onShare}
-              disabled={sharing}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98] disabled:opacity-60"
-            >
-              <Share2 size={16} />
-              {sharing ? "공유 준비 중..." : copied ? "복사 완료!" : "친구한테 공유하기"}
-            </button>
-
             <a
-              href="https://pf.kakao.com/"
+              href="https://pf.kakao.com/_iKBxfK"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-4 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
             >
-              <MessageCircle size={16} />
+              <MessageCircle size={18} />
               이 결과 기준으로 상담하기
-            </a>
-
-            <a
-              href="https://www.sol-housing.jp/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 py-3.5 text-sm font-bold text-primary transition active:scale-[0.98]"
-            >
-              <ExternalLink size={16} />
-              더 다양한 집보기
             </a>
 
             <a
@@ -317,6 +298,25 @@ function ResultView({ r }: { r: ResultType }) {
             >
               <Instagram size={16} />
               솔하우징 인스타 팔로우
+            </a>
+
+            <button
+              onClick={onShare}
+              disabled={sharing}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98] disabled:opacity-60"
+            >
+              <Share2 size={16} />
+              {sharing ? "공유 준비 중..." : copied ? "복사 완료!" : "친구한테 공유하기"}
+            </button>
+
+            <a
+              href="https://www.sol-housing.jp/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 py-3.5 text-sm font-bold text-primary transition active:scale-[0.98]"
+            >
+              <ExternalLink size={16} />
+              더 다양한 집보기
             </a>
           </div>
         </motion.div>
