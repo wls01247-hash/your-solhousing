@@ -57,8 +57,6 @@ function useStoredScores(): Record<Category, number> | null {
 
 function ResultView({ r }: { r: ResultType }) {
   const [copied, setCopied] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  const captureRef = useRef<HTMLDivElement>(null);
   const rawScores = useStoredScores();
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
   const shareText = `${r.emoji} 나의 도쿄 자취 성향: ${r.name}\n"${r.oneliner}"\n\n나도 테스트 해보기 👇`;
@@ -73,45 +71,22 @@ function ResultView({ r }: { r: ResultType }) {
   }, [rawScores]);
 
   const onShare = async () => {
-    if (!captureRef.current) return;
-    setSharing(true);
     try {
-      const dataUrl = await toPng(captureRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: "#ffffff",
-      });
-
-      // Try native share with image file
-      if (typeof navigator !== "undefined" && navigator.canShare) {
+      if (typeof navigator !== "undefined" && navigator.share) {
         try {
-          const blob = await (await fetch(dataUrl)).blob();
-          const file = new File([blob], `tokyo-type-${r.slug}.png`, { type: "image/png" });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              title: `${r.emoji} 나의 도쿄 자취 성향: ${r.name}`,
-              text: `${shareText}\n${shareUrl}`,
-              files: [file],
-            });
-            return;
-          }
+          await navigator.share({
+            title: `${r.emoji} 나의 도쿄 자취 성향: ${r.name}`,
+            text: shareText,
+            url: shareUrl,
+          });
+          return;
         } catch {}
       }
-
-      // Fallback: copy link + auto-download image
-      try {
-        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {}
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `tokyo-type-${r.slug}.png`;
-      a.click();
+      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (e) {
       console.error(e);
-    } finally {
-      setSharing(false);
     }
   };
 
@@ -129,7 +104,7 @@ function ResultView({ r }: { r: ResultType }) {
 
       <div className="relative mx-auto w-full max-w-md px-5 pt-6">
         {/* capture-able card area (인스타 스토리용) */}
-        <div ref={captureRef} className="rounded-3xl">
+        <div className="rounded-3xl">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -302,15 +277,14 @@ function ResultView({ r }: { r: ResultType }) {
 
             <button
               onClick={onShare}
-              disabled={sharing}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
             >
               <Share2 size={16} />
-              {sharing ? "공유 준비 중..." : copied ? "복사 완료!" : "친구한테 공유하기"}
+              {copied ? "링크 복사 완료!" : "친구한테 공유하기"}
             </button>
 
             <a
-              href="https://www.sol-housing.jp/"
+              href="https://solhousing.com/01_search/list.php?thema=1"
               target="_blank"
               rel="noopener noreferrer"
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 py-3.5 text-sm font-bold text-primary transition active:scale-[0.98]"
