@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { resultTypes, type ResultType } from "@/lib/quiz-data";
 import { listings } from "@/lib/listings";
-import { Cat } from "@/components/Cat";
+import catFace from "@/assets/cat-face.png";
 import { Share2, MessageCircle, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/result/$slug")({
@@ -87,8 +87,8 @@ function ResultView({ r }: { r: ResultType }) {
               <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
             </div>
             <div className="shrink-0 rounded-full bg-white/25 p-1 shadow-[inset_0_1px_2px_rgba(255,255,255,0.3)] backdrop-blur-sm">
-              <div className="rounded-full bg-white/90 p-1.5 shadow-sm">
-                <Cat pose={1} className="h-20 w-20" />
+              <div className="flex h-[5.5rem] w-[5.5rem] items-center justify-center overflow-hidden rounded-full bg-white/90 shadow-sm">
+                <img src={catFace} alt="마스코트" className="h-[4.5rem] w-[4.5rem] object-contain" draggable={false} />
               </div>
             </div>
           </div>
@@ -142,8 +142,8 @@ function ResultView({ r }: { r: ResultType }) {
           className="mt-4 rounded-3xl bg-card p-5 shadow-card"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Cat pose={1} className="h-9 w-9" />
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary/10">
+              <img src={catFace} alt="마스코트" className="h-9 w-9 object-contain" draggable={false} />
             </div>
             <h2 className="text-sm font-black text-foreground">당신에게 어울리는 동네 TOP3</h2>
           </div>
@@ -183,8 +183,8 @@ function ResultView({ r }: { r: ResultType }) {
           className="mt-8 rounded-3xl bg-card p-5 shadow-card"
         >
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/15">
-              <Cat pose={1} className="h-7 w-7" />
+            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-accent/15">
+              <img src={catFace} alt="마스코트" className="h-7 w-7 object-contain" draggable={false} />
             </div>
             <h2 className="text-sm font-black text-foreground">다음 단계</h2>
           </div>
@@ -247,9 +247,9 @@ function ListingCard({ l }: { l: import("@/lib/listings").Listing }) {
   return (
     <motion.article
       whileTap={{ scale: 0.98 }}
-      className="flex gap-3 overflow-hidden rounded-2xl bg-card p-3 shadow-card"
+      className="flex gap-3 overflow-hidden rounded-2xl border border-primary/10 bg-white p-3 shadow-[0_8px_24px_-6px_rgba(46,125,50,0.18)]"
     >
-      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted">
+      <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-muted">
         <img
           src={l.image}
           alt={l.title}
@@ -257,24 +257,26 @@ function ListingCard({ l }: { l: import("@/lib/listings").Listing }) {
           className="h-full w-full object-cover"
         />
       </div>
-      <div className="flex flex-1 flex-col justify-center min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="min-w-0 truncate text-sm font-extrabold text-foreground">{l.title}</h3>
-          <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-            {l.layout}
-          </span>
+      <div className="flex flex-1 flex-col justify-between min-w-0 py-0.5">
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 truncate text-[15px] font-extrabold text-foreground">{l.title}</h3>
+            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+              {l.layout}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {l.station}역 도보 {l.walkMin}분 · {l.area}㎡
+          </p>
         </div>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
-          {l.station}역 도보 {l.walkMin}분 · {l.area}㎡
-        </p>
-        <div className="mt-2 flex items-center justify-between">
-          <p className="text-sm font-black text-primary">
+        <div className="flex items-center justify-between">
+          <p className="text-base font-black text-primary">
             ¥{l.rent.toLocaleString()}
             <span className="ml-1 text-[10px] font-medium text-muted-foreground">
               +관 ¥{l.maintenance.toLocaleString()}
             </span>
           </p>
-          <button className="rounded-full bg-foreground px-3 py-1.5 text-[11px] font-bold text-background active:scale-95">
+          <button className="rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-sm active:scale-95">
             상세보기
           </button>
         </div>
