@@ -153,10 +153,10 @@ function ResultView({ r }: { r: ResultType }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-4 rounded-3xl bg-card p-5 shadow-card"
+            className="mt-4 rounded-3xl bg-card p-4 shadow-card"
           >
             <h2 className="text-sm font-black text-foreground">나의 도쿄 자취 능력치</h2>
-            <div className="mt-4 space-y-3.5">
+            <div className="mt-3 space-y-2.5">
               {scores.entries.map((s) => {
                 const isTop = s.cat === scores.top.cat;
                 return (
@@ -165,7 +165,7 @@ function ResultView({ r }: { r: ResultType }) {
                       <span className={isTop ? "text-primary" : "text-muted-foreground"}>{s.name}</span>
                       <span className={isTop ? "text-primary" : "text-foreground/70"}>{s.value}점</span>
                     </div>
-                    <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${s.value}%` }}
@@ -178,12 +178,12 @@ function ResultView({ r }: { r: ResultType }) {
               })}
             </div>
             {scores.top && (
-              <div className="mt-4 rounded-2xl bg-primary/10 px-4 py-3 text-center">
+              <div className="mt-3 rounded-2xl bg-primary/10 px-4 py-2.5 text-center">
                 <p className="text-xs font-bold text-muted-foreground">가장 높은 유형</p>
                 <p className="mt-1 text-base font-black text-primary">{scores.top.name}</p>
               </div>
             )}
-            <p className="mt-3 text-sm leading-relaxed text-foreground/80">{r.description}</p>
+            <p className="mt-2 text-sm leading-relaxed text-foreground/80">{r.description}</p>
           </motion.div>
         )}
 
