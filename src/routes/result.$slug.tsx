@@ -2,11 +2,14 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, normalizeScore } from "@/lib/quiz-data";
-import { listings } from "@/lib/listings";
 import catFace from "@/assets/cat-face-only.png";
 import catFull from "@/assets/cat-1.png";
 import { Share2, MessageCircle, ExternalLink } from "lucide-react";
 import { toPng } from "html-to-image";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getRecommendedListings, type ListingDTO } from "@/lib/listings.functions";
+import type { LifeAreaSlug } from "@/lib/life-areas";
 
 export const Route = createFileRoute("/result/$slug")({
   head: ({ params }) => {
@@ -112,10 +115,12 @@ function ResultView({ r }: { r: ResultType }) {
     }
   };
 
-  const recommended = r.listings
-    .map((id) => listings[id])
-    .filter(Boolean)
-    .slice(0, 3);
+  const fetchRecommended = useServerFn(getRecommendedListings);
+  const { data: recommended, isLoading: loadingListings } = useQuery({
+    queryKey: ["recommended-listings", r.slug],
+    queryFn: () => fetchRecommended({ data: { type: r.slug as LifeAreaSlug, limit: 3 } }),
+    staleTime: 5 * 60 * 1000,
+  });
 
   return (
     <main className="relative min-h-screen bg-gradient-soft pb-16">
@@ -239,11 +244,24 @@ function ResultView({ r }: { r: ResultType }) {
           className="mt-6"
         >
           <h2 className="text-base font-black text-foreground">추천 매물 TOP3</h2>
-          <p className="mt-1 text-xs text-muted-foreground">솔하우징 큐레이션 · Mock 데이터</p>
+          <p className="mt-1 text-xs text-muted-foreground">솔하우징 실시간 큐레이션 · 모집중 매물</p>
           <div className="mt-3 flex flex-col gap-3">
-            {recommended.map((l) => (
-              <ListingCard key={l.id} l={l} />
-            ))}
+            {loadingListings && (
+              <>
+                <ListingSkeleton />
+                <ListingSkeleton />
+                <ListingSkeleton />
+              </>
+            )}
+            {!loadingListings && (!recommended || recommended.length === 0) && (
+              <div className="rounded-2xl border border-dashed border-primary/20 bg-card p-5 text-center text-sm text-muted-foreground">
+                현재 이 유형 생활권에 모집중인 매물이 없어요.
+                <br />
+                잠시 후 다시 시도해주세요.
+              </div>
+            )}
+            {!loadingListings &&
+              recommended?.map((l) => <ListingCard key={l.uid} l={l} />)}
           </div>
         </motion.div>
 
@@ -315,44 +333,83 @@ function ScrollReset() {
   return null;
 }
 
-function ListingCard({ l }: { l: import("@/lib/listings").Listing }) {
+function ListingCard({ l }: { l: ListingDTO }) {
+  const titleText = l.title?.split("\n")[0] || l.address || "매물";
   return (
     <motion.article
       whileTap={{ scale: 0.98 }}
       className="flex gap-3 overflow-hidden rounded-2xl border border-primary/10 bg-white p-3 shadow-[0_8px_24px_-6px_rgba(46,125,50,0.18)]"
     >
       <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-muted">
-        <img
-          src={l.image}
-          alt={l.title}
-          loading="lazy"
-          className="h-full w-full object-cover"
-        />
+        {l.image_url ? (
+          <img
+            src={l.image_url}
+            alt={titleText}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+            no image
+          </div>
+        )}
       </div>
-      <div className="flex flex-1 flex-col justify-between min-w-0 py-0.5">
+      <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
         <div>
           <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 truncate text-[15px] font-extrabold text-foreground">{l.title}</h3>
-            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-              {l.layout}
-            </span>
+            <h3 className="min-w-0 truncate text-[14px] font-extrabold text-foreground">{titleText}</h3>
+            {l.room_type && (
+              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                {l.room_type}
+              </span>
+            )}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {l.station}역 도보 {l.walkMin}분 · {l.area}㎡
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {l.station_name ?? "-"}駅
+            {l.walk_minutes != null && ` · 도보 ${l.walk_minutes}분`}
+            {l.size_sqm != null && ` · ${l.size_sqm}㎡`}
           </p>
         </div>
-        <div className="flex items-center justify-between">
-          <p className="text-base font-black text-primary">
-            ¥{l.rent.toLocaleString()}
-            <span className="ml-1 text-[10px] font-medium text-muted-foreground">
-              +관 ¥{l.maintenance.toLocaleString()}
-            </span>
-          </p>
-          <button className="rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-sm active:scale-95">
+        <div className="flex items-end justify-between gap-2">
+          <div>
+            <p className="text-[15px] font-black leading-tight text-primary">
+              ¥{(l.rent_yen ?? 0).toLocaleString()}
+            </p>
+            {l.maintenance_fee_yen != null && (
+              <p className="text-[10px] text-muted-foreground">
+                +관리비 ¥{l.maintenance_fee_yen.toLocaleString()}
+              </p>
+            )}
+          </div>
+          <a
+            href={l.property_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-sm active:scale-95"
+          >
             상세보기
-          </button>
+          </a>
         </div>
       </div>
     </motion.article>
+  );
+}
+
+function ListingSkeleton() {
+  return (
+    <div className="flex gap-3 rounded-2xl border border-primary/10 bg-white p-3">
+      <div className="h-28 w-28 shrink-0 animate-pulse rounded-xl bg-muted" />
+      <div className="flex flex-1 flex-col justify-between py-0.5">
+        <div className="space-y-2">
+          <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+          <div className="h-2.5 w-1/2 animate-pulse rounded bg-muted" />
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="h-4 w-1/3 animate-pulse rounded bg-muted" />
+          <div className="h-6 w-16 animate-pulse rounded-full bg-muted" />
+        </div>
+      </div>
+    </div>
   );
 }

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResultSlugRouteImport } from './routes/result.$slug'
+import { Route as ApiPublicHooksSyncListingsRouteImport } from './routes/api/public/hooks/sync-listings'
 
 const QuizRoute = QuizRouteImport.update({
   id: '/quiz',
@@ -28,35 +29,50 @@ const ResultSlugRoute = ResultSlugRouteImport.update({
   path: '/result/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksSyncListingsRoute =
+  ApiPublicHooksSyncListingsRouteImport.update({
+    id: '/api/public/hooks/sync-listings',
+    path: '/api/public/hooks/sync-listings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/quiz': typeof QuizRoute
   '/result/$slug': typeof ResultSlugRoute
+  '/api/public/hooks/sync-listings': typeof ApiPublicHooksSyncListingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/quiz': typeof QuizRoute
   '/result/$slug': typeof ResultSlugRoute
+  '/api/public/hooks/sync-listings': typeof ApiPublicHooksSyncListingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/quiz': typeof QuizRoute
   '/result/$slug': typeof ResultSlugRoute
+  '/api/public/hooks/sync-listings': typeof ApiPublicHooksSyncListingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/quiz' | '/result/$slug'
+  fullPaths: '/' | '/quiz' | '/result/$slug' | '/api/public/hooks/sync-listings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/quiz' | '/result/$slug'
-  id: '__root__' | '/' | '/quiz' | '/result/$slug'
+  to: '/' | '/quiz' | '/result/$slug' | '/api/public/hooks/sync-listings'
+  id:
+    | '__root__'
+    | '/'
+    | '/quiz'
+    | '/result/$slug'
+    | '/api/public/hooks/sync-listings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   QuizRoute: typeof QuizRoute
   ResultSlugRoute: typeof ResultSlugRoute
+  ApiPublicHooksSyncListingsRoute: typeof ApiPublicHooksSyncListingsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +98,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResultSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/sync-listings': {
+      id: '/api/public/hooks/sync-listings'
+      path: '/api/public/hooks/sync-listings'
+      fullPath: '/api/public/hooks/sync-listings'
+      preLoaderRoute: typeof ApiPublicHooksSyncListingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +112,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   QuizRoute: QuizRoute,
   ResultSlugRoute: ResultSlugRoute,
+  ApiPublicHooksSyncListingsRoute: ApiPublicHooksSyncListingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
