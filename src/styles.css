@@ -49,6 +49,7 @@
   --color-brand-soft: var(--brand-soft);
   --color-accent-gold: var(--accent-gold);
   --color-kakao: var(--kakao);
+  --color-kakao-foreground: var(--kakao-foreground);
   --color-line: var(--line);
   --font-display: "Zen Maru Gothic", "Gowun Dodum", system-ui, sans-serif;
   --font-sans: "Gowun Dodum", "Zen Maru Gothic", system-ui, sans-serif;
