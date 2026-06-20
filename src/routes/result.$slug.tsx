@@ -82,7 +82,7 @@ function ResultView({ r }: { r: ResultType }) {
           <div className="mt-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-4xl">{r.emoji}</div>
-              <h1 className="mt-1 truncate text-3xl font-black leading-tight">{r.name}</h1>
+              <h1 className="mt-1 text-[26px] font-black leading-tight">{r.name}</h1>
               <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
             </div>
             <Cat pose={2} className="h-24 w-24 shrink-0 -mt-2" float />
