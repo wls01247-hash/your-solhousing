@@ -73,10 +73,13 @@ create table if not exists public.listings (
   raw_status           text,
   thema                integer,
   created_at           timestamptz not null default now(),
-  updated_at           timestamptz not null default now(),
-  station_name_normalized text generated always as
-    (public.normalize_station_name(station_name)) stored
+  updated_at           timestamptz not null default now()
 );
+
+-- 기존 테이블에도 안전하게 추가
+alter table if exists public.listings
+  add column if not exists station_name_normalized text generated always as
+    (public.normalize_station_name(station_name)) stored;
 
 create index if not exists listings_station_status_updated_idx
   on public.listings (station_name, contract_status, updated_at desc);
