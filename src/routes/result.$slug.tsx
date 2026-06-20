@@ -86,11 +86,7 @@ function ResultView({ r }: { r: ResultType }) {
               <h1 className="mt-1 text-[26px] font-black leading-tight">{r.name}</h1>
               <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
             </div>
-            <div className="shrink-0 rounded-full bg-white/25 p-1 shadow-[inset_0_1px_2px_rgba(255,255,255,0.3)] backdrop-blur-sm">
-              <div className="flex h-[5.5rem] w-[5.5rem] items-center justify-center overflow-hidden rounded-full bg-white/90 shadow-sm">
-                <img src={catFace} alt="마스코트" className="h-[4.5rem] w-[4.5rem] object-contain" draggable={false} />
-              </div>
-            </div>
+            <img src={catFace} alt="마스코트" className="h-[5.5rem] w-[5.5rem] shrink-0 object-contain" draggable={false} />
           </div>
         </motion.div>
 
@@ -142,9 +138,7 @@ function ResultView({ r }: { r: ResultType }) {
           className="mt-4 rounded-3xl bg-card p-5 shadow-card"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary/10">
-              <img src={catFace} alt="마스코트" className="h-9 w-9 object-contain" draggable={false} />
-            </div>
+            <img src={catFace} alt="마스코트" className="h-9 w-9 object-contain" draggable={false} />
             <h2 className="text-sm font-black text-foreground">당신에게 어울리는 동네 TOP3</h2>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -183,9 +177,7 @@ function ResultView({ r }: { r: ResultType }) {
           className="mt-8 rounded-3xl bg-card p-5 shadow-card"
         >
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-accent/15">
-              <img src={catFace} alt="마스코트" className="h-7 w-7 object-contain" draggable={false} />
-            </div>
+            <img src={catFace} alt="마스코트" className="h-7 w-7 object-contain" draggable={false} />
             <h2 className="text-sm font-black text-foreground">다음 단계</h2>
           </div>
 
@@ -206,7 +198,7 @@ function ResultView({ r }: { r: ResultType }) {
               style={{ backgroundColor: "#FEE500", color: "#000000" }}
             >
               <MessageCircle size={16} />
-              카카오톡 상담하기
+              이 결과 기준으로 상담하기
             </a>
 
             <a
@@ -216,7 +208,7 @@ function ResultView({ r }: { r: ResultType }) {
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 py-3.5 text-sm font-bold text-primary transition active:scale-[0.98]"
             >
               <ExternalLink size={16} />
-              더 자세한 매물보기
+              이 조건으로 더 다양한 집보기
             </a>
           </div>
         </motion.div>
