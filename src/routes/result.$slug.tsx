@@ -54,8 +54,7 @@ function useStoredScores(): Record<Category, number> | null {
 
 function ResultView({ r }: { r: ResultType }) {
   const [copied, setCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
   const rawScores = useStoredScores();
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
