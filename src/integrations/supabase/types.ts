@@ -14,6 +14,119 @@ export type Database = {
   }
   public: {
     Tables: {
+      life_area_stations: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          life_area_id: string
+          station_name_ja: string
+          station_name_ko: string | null
+          station_name_normalized: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          life_area_id: string
+          station_name_ja: string
+          station_name_ko?: string | null
+          station_name_normalized?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          life_area_id?: string
+          station_name_ja?: string
+          station_name_ko?: string | null
+          station_name_normalized?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "life_area_stations_life_area_id_fkey"
+            columns: ["life_area_id"]
+            isOneToOne: false
+            referencedRelation: "life_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "life_area_stations_life_area_id_fkey"
+            columns: ["life_area_id"]
+            isOneToOne: false
+            referencedRelation: "recommended_listings"
+            referencedColumns: ["life_area_id"]
+          },
+        ]
+      }
+      life_area_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          emoji: string | null
+          name_ko: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          emoji?: string | null
+          name_ko: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          emoji?: string | null
+          name_ko?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      life_areas: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          name_ja: string | null
+          name_ko: string
+          type_slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name_ja?: string | null
+          name_ko: string
+          type_slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name_ja?: string | null
+          name_ko?: string
+          type_slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "life_areas_type_slug_fkey"
+            columns: ["type_slug"]
+            isOneToOne: false
+            referencedRelation: "life_area_types"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       listings: {
         Row: {
           address: string | null
@@ -29,6 +142,7 @@ export type Database = {
           size_sqm: number | null
           station_line: string | null
           station_name: string | null
+          station_name_normalized: string | null
           thema: number | null
           title: string | null
           uid: number
@@ -50,6 +164,7 @@ export type Database = {
           size_sqm?: number | null
           station_line?: string | null
           station_name?: string | null
+          station_name_normalized?: string | null
           thema?: number | null
           title?: string | null
           uid: number
@@ -71,6 +186,7 @@ export type Database = {
           size_sqm?: number | null
           station_line?: string | null
           station_name?: string | null
+          station_name_normalized?: string | null
           thema?: number | null
           title?: string | null
           uid?: number
@@ -82,10 +198,47 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      recommended_listings: {
+        Row: {
+          address: string | null
+          contract_status: string | null
+          created_at: string | null
+          image_url: string | null
+          life_area_id: string | null
+          life_area_name: string | null
+          maintenance_fee_yen: number | null
+          move_in: string | null
+          property_url: string | null
+          raw_status: string | null
+          rent_yen: number | null
+          room_type: string | null
+          size_sqm: number | null
+          station_line: string | null
+          station_name: string | null
+          station_name_ja: string | null
+          station_name_ko: string | null
+          station_name_normalized: string | null
+          thema: number | null
+          title: string | null
+          type_slug: string | null
+          uid: number | null
+          updated_at: string | null
+          walk_minutes: number | null
+          year_built: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "life_areas_type_slug_fkey"
+            columns: ["type_slug"]
+            isOneToOne: false
+            referencedRelation: "life_area_types"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      normalize_station_name: { Args: { s: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
