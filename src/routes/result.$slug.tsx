@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, normalizeScore } from "@/lib/quiz-data";
 import { listings } from "@/lib/listings";
 import catFace from "@/assets/cat-face.png";
+import catFull from "@/assets/cat-1.png";
 import { Share2, MessageCircle, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/result/$slug")({
@@ -108,7 +109,7 @@ function ResultView({ r }: { r: ResultType }) {
               <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
             </div>
             <div className="flex shrink-0 items-center justify-center">
-              <img src={catFace} alt="마스코트" className="h-[8.5rem] w-[8.5rem] object-contain" draggable={false} />
+              <img src={catFull} alt="마스코트" className="h-[10rem] w-auto object-contain" draggable={false} />
             </div>
           </div>
         </motion.div>
