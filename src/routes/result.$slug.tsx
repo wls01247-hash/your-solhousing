@@ -87,7 +87,7 @@ function ResultView({ r }: { r: ResultType }) {
               <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
             </div>
             <div className="flex h-[5.5rem] w-[5.5rem] shrink-0 items-center justify-center rounded-full bg-white/90 shadow-sm">
-              <img src={catFace} alt="마스코트" className="h-14 w-14 object-contain" draggable={false} />
+              <img src={catFace} alt="마스코트" className="h-[4.5rem] w-[4.5rem] object-contain" draggable={false} />
             </div>
           </div>
         </motion.div>
@@ -141,7 +141,7 @@ function ResultView({ r }: { r: ResultType }) {
         >
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-              <img src={catFace} alt="마스코트" className="h-6 w-6 object-contain" draggable={false} />
+              <img src={catFace} alt="마스코트" className="h-8 w-8 object-contain" draggable={false} />
             </div>
             <h2 className="text-sm font-black text-foreground">당신에게 어울리는 동네 TOP3</h2>
           </div>
@@ -182,7 +182,7 @@ function ResultView({ r }: { r: ResultType }) {
         >
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/15">
-              <img src={catFace} alt="마스코트" className="h-4 w-4 object-contain" draggable={false} />
+              <img src={catFace} alt="마스코트" className="h-6 w-6 object-contain" draggable={false} />
             </div>
             <h2 className="text-sm font-black text-foreground">다음 단계</h2>
           </div>
