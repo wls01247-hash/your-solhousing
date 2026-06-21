@@ -12,7 +12,9 @@
 --   recommended_listings   (뷰: 유형 slug → 모집중 매물 즉시 조회)
 -- =====================================================================
 
-create extension if not exists "pgcrypto";
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+create extension if not exists "pgcrypto" with schema extensions;
 
 -- ---------------------------------------------------------------------
 -- 공통: 역명 정규화 함수
@@ -26,6 +28,7 @@ create or replace function public.normalize_station_name(s text)
 returns text
 language sql
 immutable
+set search_path = public
 as $$
   select case
     when s is null then null
@@ -193,7 +196,8 @@ create policy "Anyone can view life area stations"
 -- 5. recommended_listings — 추천 조회용 뷰
 --    유형 slug 하나로 (생활권 → 역 → 모집중 매물) 까지 한 번에 JOIN
 -- =====================================================================
-create or replace view public.recommended_listings as
+create or replace view public.recommended_listings
+with (security_invoker = true) as
 select
   la.type_slug,
   la.id           as life_area_id,
