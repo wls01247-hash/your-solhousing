@@ -12,4 +12,8 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Force-enable the Nitro deploy plugin (the wrapper skips it outside a Lovable
+  // sandbox) and target Vercel so the build emits `.vercel/output` (SSR function).
+  // In the Lovable sandbox this is overridden back to cloudflare automatically.
+  nitro: { preset: "vercel" },
 });
