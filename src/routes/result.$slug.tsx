@@ -129,6 +129,9 @@ function ResultView({
   const runners = ranked.slice(1, 3);
 
   const shareText = `🏠 ${HUB_SHORT[hub]} 생활 중심 자취 추천\n🥇 ${top.area.name_ko} (${Math.round(top.total * 100)}점)\n\n나도 테스트 해보기 👇`;
+  // 텍스트와 URL 을 한 필드로 합쳐 모든 환경에서 "텍스트 먼저, URL 나중" 순서를 고정한다.
+  // (navigator.share 에 url 을 따로 넘기면 받는 앱이 순서를 임의로 재배치하므로 url 필드는 쓰지 않음)
+  const shareMessage = `${shareText}\n${shareUrl}`;
 
   const onShare = async () => {
     try {
@@ -136,13 +139,12 @@ function ResultView({
         try {
           await navigator.share({
             title: `도쿄 자취 추천: ${top.area.name_ko}`,
-            text: shareText,
-            url: shareUrl,
+            text: shareMessage,
           });
           return;
         } catch {}
       }
-      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      await navigator.clipboard.writeText(shareMessage);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
