@@ -1,286 +1,227 @@
-export type Category = "MOVE" | "SAVE" | "HOME" | "LIFE";
+// ============================================================
+// 새 모델: 생활 중심지(hub) + 6개 평가축(axis) + 매물 필터(budget/roomType/size)
+// ============================================================
 
-export interface Choice {
-  label: string;
-  text: string;
-  cat: Category;
-  weight: number;
-}
+export type Hub = "SHINJUKU" | "SHIBUYA" | "TOKYO" | "IKEBUKURO" | "UNSURE";
 
-export interface Question {
-  id: number;
-  prompt: string;
-  choices: Choice[];
-}
+export const HUB_LABELS: Record<Hub, string> = {
+  SHINJUKU: "신주쿠·나카노 방면",
+  SHIBUYA: "시부야·에비스 방면",
+  TOKYO: "도쿄역·긴자 방면",
+  IKEBUKURO: "이케부쿠로·다카다노바바 방면",
+  UNSURE: "아직 잘 모르겠어요",
+};
+
+export const HUB_SHORT: Record<Hub, string> = {
+  SHINJUKU: "신주쿠",
+  SHIBUYA: "시부야",
+  TOKYO: "도쿄역",
+  IKEBUKURO: "이케부쿠로",
+  UNSURE: "도심 전반",
+};
+
+export type Axis =
+  | "BUDGET"
+  | "COMMUTE"
+  | "VIBE"
+  | "CONVENIENCE"
+  | "SAFETY"
+  | "SIZE";
+
+export const AXIS_LABELS: Record<Axis, string> = {
+  BUDGET: "예산 민감도",
+  COMMUTE: "통근 효율",
+  VIBE: "동네 분위기",
+  CONVENIENCE: "생활 편의성",
+  SAFETY: "치안",
+  SIZE: "넓이",
+};
+
+export type RoomType = "1R" | "1K" | "1DK" | "1LDK" | "2K+";
+export const ROOM_TYPES: RoomType[] = ["1R", "1K", "1DK", "1LDK", "2K+"];
+
+export type SizeBand = "S" | "M" | "L" | "XL";
+export const SIZE_BAND_LABEL: Record<SizeBand, string> = {
+  S: "~20㎡ (콤팩트)",
+  M: "20~25㎡",
+  L: "25~30㎡",
+  XL: "30㎡+",
+};
+export const SIZE_BAND_RANGE: Record<SizeBand, { min: number; max: number | null }> = {
+  S: { min: 0, max: 20 },
+  M: { min: 18, max: 26 },
+  L: { min: 24, max: 32 },
+  XL: { min: 28, max: null },
+};
+
+// ---------- 질문 정의 (discriminated union) ----------
+
+export type AxisChoice = { label: string; text: string; axis: Axis; weight: number };
+
+export type Question =
+  | { id: number; kind: "hub"; prompt: string; choices: { label: string; text: string; hub: Hub }[] }
+  | { id: number; kind: "axis"; prompt: string; choices: AxisChoice[] }
+  | { id: number; kind: "budget"; prompt: string; min: number; max: number; step: number; default: number }
+  | { id: number; kind: "roomType"; prompt: string }
+  | { id: number; kind: "size"; prompt: string };
 
 export const questions: Question[] = [
   {
     id: 1,
-    prompt: "부동산에서 10개 매물을 보여줬다.\n일주일 뒤에도 기억나는 것은?",
+    kind: "hub",
+    prompt: "평일 가장 자주 가는 곳은 어디?",
     choices: [
-      { label: "A", text: "역 이름", cat: "MOVE", weight: 3 },
-      { label: "B", text: "월세", cat: "SAVE", weight: 3 },
-      { label: "C", text: "방 구조", cat: "HOME", weight: 3 },
-      { label: "D", text: "동네 풍경", cat: "LIFE", weight: 3 },
+      { label: "A", text: "신주쿠·나카노 방면", hub: "SHINJUKU" },
+      { label: "B", text: "시부야·에비스 방면", hub: "SHIBUYA" },
+      { label: "C", text: "도쿄역·긴자 방면", hub: "TOKYO" },
+      { label: "D", text: "이케부쿠로·다카다노바바 방면", hub: "IKEBUKURO" },
+      { label: "E", text: "아직 잘 모르겠어요", hub: "UNSURE" },
     ],
   },
   {
     id: 2,
-    prompt: "내견을 다녀왔다!\n가장 먼저 체크하는 것은?",
+    kind: "axis",
+    prompt: "부동산에서 10개 매물을 보여줬다.\n일주일 뒤에도 기억나는 것은?",
     choices: [
-      { label: "A", text: "역에서 여기까지 얼마나 걸리지...", cat: "MOVE", weight: 3 },
-      { label: "B", text: "초기비용 어땠더라", cat: "SAVE", weight: 3 },
-      { label: "C", text: "도면 찍어놔야지", cat: "HOME", weight: 3 },
-      { label: "D", text: "주변에 맛집 있나 확인!", cat: "LIFE", weight: 3 },
+      { label: "A", text: "역 이름", axis: "COMMUTE", weight: 3 },
+      { label: "B", text: "월세", axis: "BUDGET", weight: 3 },
+      { label: "C", text: "방 구조", axis: "SIZE", weight: 3 },
+      { label: "D", text: "동네 풍경", axis: "VIBE", weight: 3 },
     ],
   },
   {
     id: 3,
-    prompt: "대망의 이사 첫날.\n택배가 8개 도착했다.\n제일 먼저 뜯는 것은?",
+    kind: "axis",
+    prompt: "내견을 다녀왔다!\n가장 먼저 체크하는 것은?",
     choices: [
-      { label: "A", text: "공유기", cat: "MOVE", weight: 3 },
-      { label: "B", text: "생활용품 박스", cat: "SAVE", weight: 3 },
-      { label: "C", text: "침구류", cat: "HOME", weight: 3 },
-      { label: "D", text: "인테리어 소품", cat: "LIFE", weight: 3 },
+      { label: "A", text: "역에서 여기까지 얼마나 걸리지", axis: "COMMUTE", weight: 3 },
+      { label: "B", text: "초기비용 어땠더라", axis: "BUDGET", weight: 3 },
+      { label: "C", text: "방 평수 다시 확인", axis: "SIZE", weight: 3 },
+      { label: "D", text: "주변 편의시설 / 맛집 체크", axis: "CONVENIENCE", weight: 3 },
     ],
   },
   {
     id: 4,
-    prompt: "이사한 다음 날, 친구가 갑자기 말한다.\n\"오늘 네 집 가도 돼?\"\n첫 생각은?",
+    kind: "axis",
+    prompt: "친구가 집 계약했다고 자랑한다.\n속으로 제일 먼저 드는 생각은?",
     choices: [
-      { label: "A", text: "몇 시에 오지?", cat: "MOVE", weight: 2 },
-      { label: "B", text: "뭐 사와 달라고 할까?", cat: "SAVE", weight: 3 },
-      { label: "C", text: "집이 너무 더러운데", cat: "HOME", weight: 3 },
-      { label: "D", text: "어디 데려가지?", cat: "LIFE", weight: 3 },
+      { label: "A", text: "출퇴근 괜찮나", axis: "COMMUTE", weight: 3 },
+      { label: "B", text: "얼마에 구했으려나?", axis: "BUDGET", weight: 3 },
+      { label: "C", text: "동네 분위기 좋아 보인다", axis: "VIBE", weight: 3 },
+      { label: "D", text: "치안은 안전한 곳인가", axis: "SAFETY", weight: 3 },
     ],
   },
   {
     id: 5,
-    prompt: "친구랑 신주쿠에서 놀다 막차를 놓쳤다!\n가장 먼저 드는 생각은?",
+    kind: "axis",
+    prompt: "밤 11시. 배고픈데 냉장고가 비어 있다.",
     choices: [
-      { label: "A", text: "집 어떻게 가냐…", cat: "MOVE", weight: 3 },
-      { label: "B", text: "택시비 얼마냐", cat: "SAVE", weight: 3 },
-      { label: "C", text: "그냥 자고 갈까", cat: "HOME", weight: 3 },
-      { label: "D", text: "밤새 술 마시면 되지?", cat: "LIFE", weight: 3 },
+      { label: "A", text: "편의점·마트 도보 1분 필수", axis: "CONVENIENCE", weight: 4 },
+      { label: "B", text: "배달 시키지 뭐", axis: "BUDGET", weight: 2 },
+      { label: "C", text: "있는 걸로 버틴다", axis: "SIZE", weight: 2 },
+      { label: "D", text: "동네에 24시 식당 있나?", axis: "VIBE", weight: 3 },
     ],
   },
   {
     id: 6,
-    prompt: "친구가 집 계약했다고 자랑한다.\n속으로 제일 먼저 드는 생각은?",
+    kind: "axis",
+    prompt: "친구랑 놀다 막차를 놓쳤다!\n가장 먼저 드는 생각은?",
     choices: [
-      { label: "A", text: "출퇴근 괜찮나", cat: "MOVE", weight: 3 },
-      { label: "B", text: "얼마에 구했으려나?", cat: "SAVE", weight: 3 },
-      { label: "C", text: "이 집 너무 깨끗하다!", cat: "HOME", weight: 3 },
-      { label: "D", text: "집 앞에 스타벅스가 있잖아?", cat: "LIFE", weight: 3 },
+      { label: "A", text: "막차 시간 외워두는 게 인생", axis: "COMMUTE", weight: 4 },
+      { label: "B", text: "택시비 얼마냐", axis: "BUDGET", weight: 3 },
+      { label: "C", text: "밤길 무서운데 어떻게 가지", axis: "SAFETY", weight: 4 },
+      { label: "D", text: "밤새 놀면 되지?", axis: "VIBE", weight: 2 },
     ],
   },
   {
     id: 7,
-    prompt: "친구 집에 놀러가려 했는데 비가 와서\n일정이 취소됐네….",
+    kind: "axis",
+    prompt: "재택근무가 한 달간 확정됐다.\n기분 좋은 이유는?",
     choices: [
-      { label: "A", text: "다른 약속 찾음", cat: "MOVE", weight: 2 },
-      { label: "B", text: "돈 굳었다!!!", cat: "SAVE", weight: 3 },
-      { label: "C", text: "집이 최고여~", cat: "HOME", weight: 3 },
-      { label: "D", text: "근처 카페나 갈까?", cat: "LIFE", weight: 3 },
+      { label: "A", text: "출근 안 하니까", axis: "COMMUTE", weight: 3 },
+      { label: "B", text: "교통비 절약 굿!", axis: "BUDGET", weight: 3 },
+      { label: "C", text: "넓은 책상 펼쳐놓고 일하기", axis: "SIZE", weight: 4 },
+      { label: "D", text: "동네 카페에서 작업할 수 있어!", axis: "VIBE", weight: 3 },
     ],
   },
   {
     id: 8,
-    prompt: "밤 11시. 배고픈데 냉장고가 비어 있다….",
+    kind: "axis",
+    prompt: "이사 갈 동네 후보 두 곳이 비슷한데,\n결정타가 되는 것은?",
     choices: [
-      { label: "A", text: "편의점 가야겠다!", cat: "MOVE", weight: 2 },
-      { label: "B", text: "마트 할인 찾아봐야지", cat: "SAVE", weight: 3 },
-      { label: "C", text: "있는 걸로 버틴다", cat: "HOME", weight: 3 },
-      { label: "D", text: "배달 시킨다", cat: "LIFE", weight: 3 },
+      { label: "A", text: "월세 5천엔 차이", axis: "BUDGET", weight: 4 },
+      { label: "B", text: "역에서 도보 5분 차이", axis: "COMMUTE", weight: 4 },
+      { label: "C", text: "치안 평판이 더 좋은 쪽", axis: "SAFETY", weight: 4 },
+      { label: "D", text: "카페·서점 더 많은 쪽", axis: "VIBE", weight: 4 },
     ],
   },
   {
     id: 9,
-    prompt: "한국에서 택배가 도착했다.\n생각보다 크군.. 가장 먼저 드는 생각은?",
+    kind: "axis",
+    prompt: '친구가 묻는다. "너 지금 집 만족해?"\n가장 가까운 대답은?',
     choices: [
-      { label: "A", text: "언제 뜯지?", cat: "MOVE", weight: 3 },
-      { label: "B", text: "와 이거 해외배송비 얼마였더라", cat: "SAVE", weight: 3 },
-      { label: "C", text: "어디 둘지 고민", cat: "HOME", weight: 3 },
-      { label: "D", text: "사진 찍어서 올려야징", cat: "LIFE", weight: 3 },
+      { label: "A", text: "더 싸게 구할 수 있었을 듯", axis: "BUDGET", weight: 5 },
+      { label: "B", text: "더 좋은 위치는 있을 듯", axis: "COMMUTE", weight: 5 },
+      { label: "C", text: "더 넓은 집이면 좋겠다", axis: "SIZE", weight: 5 },
+      { label: "D", text: "더 재밌는 동네는 있을 텐데", axis: "VIBE", weight: 5 },
     ],
   },
   {
     id: 10,
-    prompt: "도쿄에서 길을 잃었다.\n배터리는 2%. 당신은?",
-    choices: [
-      { label: "A", text: "역부터 찾는다", cat: "MOVE", weight: 3 },
-      { label: "B", text: "택시비 검색", cat: "SAVE", weight: 3 },
-      { label: "C", text: "그냥 앉아서 생각", cat: "HOME", weight: 3 },
-      { label: "D", text: "어차피 온 김에 구경", cat: "LIFE", weight: 3 },
-    ],
+    kind: "budget",
+    prompt: "한 달 월세 예산은 얼마까지?",
+    min: 50000,
+    max: 200000,
+    step: 5000,
+    default: 90000,
   },
   {
     id: 11,
-    prompt: "도쿄에서 갑자기 하루가 추가로 생겼다.\n무계획 자유시간 24시간.",
-    choices: [
-      { label: "A", text: "일단 나간다", cat: "MOVE", weight: 3 },
-      { label: "B", text: "가성비 좋은 가게 찾아보기", cat: "SAVE", weight: 3 },
-      { label: "C", text: "집에 있을래", cat: "HOME", weight: 3 },
-      { label: "D", text: "동네 탐험 시간이다!!!", cat: "LIFE", weight: 3 },
-    ],
+    kind: "roomType",
+    prompt: "원하는 방 구조는?\n(복수 선택 가능)",
   },
   {
     id: 12,
-    prompt: "재택근무가 한 달간 확정됐다.\n기분 좋은 이유는?",
-    choices: [
-      { label: "A", text: "출근 안 하니까", cat: "MOVE", weight: 3 },
-      { label: "B", text: "교통비 절약 굿!", cat: "SAVE", weight: 3 },
-      { label: "C", text: "집에서 쉴 수 있으니까…", cat: "HOME", weight: 3 },
-      { label: "D", text: "카페에서 작업할 수 있어!", cat: "LIFE", weight: 3 },
-    ],
-  },
-  {
-    id: 13,
-    prompt: "엘리베이터를 탔는데 누군가 말을 건다.\n\"안녕하세요~\" 당신은?",
-    choices: [
-      { label: "A", text: "몇 번 본 사람인지 기억하려고 한다", cat: "MOVE", weight: 3 },
-      { label: "B", text: "혹시 사이비 아니야?", cat: "SAVE", weight: 3 },
-      { label: "C", text: "어색하게 인사하고 끝", cat: "HOME", weight: 3 },
-      { label: "D", text: "은근 반갑다", cat: "LIFE", weight: 3 },
-    ],
-  },
-  {
-    id: 14,
-    prompt: "퇴근하고 집에 도착했다.\n예상보다 하루가 너무 힘들었다. 당신은?",
-    choices: [
-      { label: "A", text: "내일 일정을 머릿속으로 정리한다", cat: "MOVE", weight: 3 },
-      { label: "B", text: "가계부 작성은 잊으면 안되지", cat: "SAVE", weight: 3 },
-      { label: "C", text: "일단 침대에 눕는다", cat: "HOME", weight: 3 },
-      { label: "D", text: "오케이. 술 마시러 나간다", cat: "LIFE", weight: 3 },
-    ],
-  },
-  {
-    id: 15,
-    prompt: '친구가 말한다. "너 지금 집 만족해?"\n가장 가까운 대답은?',
-    choices: [
-      { label: "A", text: "더 좋은 위치는 있을 듯", cat: "MOVE", weight: 5 },
-      { label: "B", text: "더 싸게 구할 수 있었을 듯", cat: "SAVE", weight: 5 },
-      { label: "C", text: "더 좋은 집은 있겠지만 찾기 귀찮다", cat: "HOME", weight: 5 },
-      { label: "D", text: "더 재밌는 동네는 있을텐데", cat: "LIFE", weight: 5 },
-    ],
+    kind: "size",
+    prompt: "원하는 평수는?",
   },
 ];
 
-export interface ResultType {
-  slug: string;
-  emoji: string;
-  name: string;
-  risk: number;
-  oneliner: string;
-  description: string;
-  triggers: string[];
-  regions: string[];
-  listings: string[]; // listing ids
+// ---------- 답변/스코어 ----------
+
+export interface QuizAnswers {
+  hub: Hub;
+  axes: Record<Axis, number>;
+  budget: number;
+  roomTypes: RoomType[];
+  size: SizeBand;
 }
 
-export const resultTypes: Record<string, ResultType> = {
-  MOVE: {
-    slug: "MOVE",
-    emoji: "🚇",
-    name: "환승 알레르기형",
-    risk: 84,
-    oneliner: "월세 1만엔보다 내 아침 10분이 더 소중함",
-    description:
-      "당신에게 동네는 곧 '역'입니다. 환승 한 번 더 끼는 순간 후보에서 탈락. 출근길 만원 전철은 인생의 적입니다.",
-    triggers: [
-      "출근 시간이 5분만 늘어도 스트레스",
-      "환승역 근처에 자석처럼 끌림",
-      "막차 시간을 외우고 다님",
-    ],
-    regions: ["나카노", "오기쿠보", "츠나시마"],
-    listings: ["l1", "l2", "l3"],
-  },
-  SAVE: {
-    slug: "SAVE",
-    emoji: "💸",
-    name: "월세 수호신형",
-    risk: 38,
-    oneliner: "월세 5000엔 아끼면 치킨이 몇 마리냐",
-    description:
-      "가계부와 한 몸. 같은 조건이면 무조건 싼 쪽. 초기비용·갱신료까지 엑셀로 비교하는 절약 마스터.",
-    triggers: [
-      "월세 비교 사이트 즐겨찾기 10개",
-      "관리비까지 더한 실질 월세로만 판단",
-      "초기비용 0엔 매물 알림 설정",
-    ],
-    regions: ["아야세", "카메아리", "와라비"],
-    listings: ["l4", "l5", "l6"],
-  },
-  LIFE: {
-    slug: "LIFE",
-    emoji: "☕",
-    name: "카페 난민형",
-    risk: 71,
-    oneliner: "집은 바꿀 수 있어도 감성은 못 참음",
-    description:
-      "동네 분위기가 인생의 8할. 카페·서점·소품샵이 도보권에 있어야 살아납니다. 인스타 감성과 호환되는 동네 필수.",
-    triggers: [
-      "단골 카페가 사라지면 이사 고려",
-      "주말 산책 코스가 곧 동네 평가",
-      "인스타에 #일상 태그 자주 씀",
-    ],
-    regions: ["시모키타자와", "코엔지", "산겐자야"],
-    listings: ["l7", "l8", "l9"],
-  },
-  HOME: {
-    slug: "HOME",
-    emoji: "🏠",
-    name: "집순이 끝판왕형",
-    risk: 12,
-    oneliner: "침대가 마음에 들면 10년도 가능",
-    description:
-      "집 안이 곧 우주. 햇빛 잘 들고 조용하면 그곳이 베스트 동네. 이사는 인생의 마지막 보루.",
-    triggers: [
-      "주말 외출 0회도 행복함",
-      "방 구조에 진심, 가구 배치 시뮬레이션",
-      "조용한 동네면 역세권 양보 가능",
-    ],
-    regions: ["오이즈미가쿠엔", "후나바시", "카와사키"],
-    listings: ["l10", "l11", "l12"],
-  },
+export const EMPTY_AXES: Record<Axis, number> = {
+  BUDGET: 0,
+  COMMUTE: 0,
+  VIBE: 0,
+  CONVENIENCE: 0,
+  SAFETY: 0,
+  SIZE: 0,
 };
 
-export const CATEGORY_SCORE_NAME: Record<Category, string> = {
-  MOVE: "환승력",
-  SAVE: "절약력",
-  LIFE: "감성력",
-  HOME: "집순력",
+// 각 축 별 최대 가중치(정규화 용)
+const AXIS_MAX: Record<Axis, number> = {
+  BUDGET: 20,
+  COMMUTE: 19,
+  VIBE: 18,
+  CONVENIENCE: 7,
+  SAFETY: 8,
+  SIZE: 14,
 };
 
-const MAX_SCORES: Record<Category, number> = {
-  MOVE: 44,
-  SAVE: 47,
-  HOME: 47,
-  LIFE: 47,
-};
-
-export function normalizeScore(cat: Category, raw: number): number {
-  return Math.min(100, Math.round((raw / MAX_SCORES[cat]) * 100));
+export function normalizeAxis(axis: Axis, raw: number): number {
+  return Math.max(0, Math.min(1, raw / AXIS_MAX[axis]));
 }
 
-export function computeResult(scores: Record<Category, number>): ResultType {
-  const sorted = (Object.entries(scores) as [Category, number][]).sort(
-    (a, b) => b[1] - a[1],
-  );
-  const [top] = sorted;
-  return resultTypes[top[0]];
+export function axisPercent(axis: Axis, raw: number): number {
+  return Math.round(normalizeAxis(axis, raw) * 100);
 }
 
-export const CATEGORY_LABEL: Record<Category, string> = {
-  MOVE: "ACCESS",
-  SAVE: "MONEY",
-  HOME: "SPACE",
-  LIFE: "VIBE",
-};
-
-export const CATEGORY_KO: Record<Category, string> = {
-  MOVE: "출퇴근",
-  SAVE: "월세",
-  HOME: "집 크기",
-  LIFE: "동네 분위기",
-};
+export const STORAGE_KEY = "tokyo-quiz-answers";

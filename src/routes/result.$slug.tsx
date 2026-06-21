@@ -1,20 +1,38 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import { resultTypes, type ResultType, type Category, CATEGORY_SCORE_NAME, normalizeScore } from "@/lib/quiz-data";
+import {
+  HUB_LABELS,
+  HUB_SHORT,
+  STORAGE_KEY,
+  SIZE_BAND_RANGE,
+  type Hub,
+  type QuizAnswers,
+} from "@/lib/quiz-data";
+import { scoreAreas, type ScoredArea } from "@/lib/recommendation";
 import catFace from "@/assets/cat-face-only.png";
 import catFull from "@/assets/cat-1.png";
 import { Share2, MessageCircle, ExternalLink, Instagram } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getRecommendedListings, type ListingDTO } from "@/lib/listings.functions";
-import type { LifeAreaSlug } from "@/lib/life-areas";
+import { getListingsForArea } from "@/lib/area-listings.functions";
+import type { ListingDTO } from "@/lib/listings.functions";
+
+const HUBS: Hub[] = ["SHINJUKU", "SHIBUYA", "TOKYO", "IKEBUKURO", "UNSURE"];
+function slugToHub(slug: string): Hub | null {
+  const u = slug.toUpperCase();
+  return (HUBS as string[]).includes(u) ? (u as Hub) : null;
+}
 
 export const Route = createFileRoute("/result/$slug")({
   head: ({ params }) => {
-    const r = resultTypes[params.slug];
-    const title = r ? `${r.emoji} ${r.name} | 도쿄 자취 성향 테스트` : "결과 | 도쿄 자취 성향 테스트";
-    const desc = r ? `"${r.oneliner}" — 추천 동네: ${r.regions.join(", ")}` : "도쿄 자취 성향 결과";
+    const hub = slugToHub(params.slug);
+    const title = hub
+      ? `${HUB_SHORT[hub]} 생활 중심 자취 추천 | 솔하우징`
+      : "결과 | 도쿄 자취 성향 테스트";
+    const desc = hub
+      ? `${HUB_LABELS[hub]} 기준 추천 동네 TOP3 + 실시간 매물 — 솔하우징`
+      : "도쿄 자취 성향 결과";
     return {
       meta: [
         { title },
@@ -29,8 +47,10 @@ export const Route = createFileRoute("/result/$slug")({
 
 function ResultPage() {
   const { slug } = useParams({ from: "/result/$slug" });
-  const r: ResultType | undefined = resultTypes[slug];
-  if (!r) {
+  const hub = slugToHub(slug);
+  const answers = useStoredAnswers();
+
+  if (!hub) {
     return (
       <main className="flex min-h-screen items-center justify-center p-6 text-center">
         <div>
@@ -40,44 +60,47 @@ function ResultPage() {
       </main>
     );
   }
-  return <ResultView r={r} />;
+
+  if (!answers) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gradient-soft p-6 text-center">
+        <div>
+          <p className="text-sm text-muted-foreground">결과 데이터를 불러오는 중...</p>
+          <Link to="/quiz" className="mt-4 inline-block text-primary underline">테스트 다시 하기</Link>
+        </div>
+      </main>
+    );
+  }
+
+  return <ResultView hub={hub} answers={answers} />;
 }
 
-function useStoredScores(): Record<Category, number> | null {
-  const [scores, setScores] = useState<Record<Category, number> | null>(null);
+function useStoredAnswers(): QuizAnswers | null {
+  const [answers, setAnswers] = useState<QuizAnswers | null>(null);
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem("tokyo-quiz-scores");
-      if (raw) setScores(JSON.parse(raw));
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) setAnswers(JSON.parse(raw));
     } catch {}
   }, []);
-  return scores;
+  return answers;
 }
 
-function ResultView({ r }: { r: ResultType }) {
+function ResultView({ hub, answers }: { hub: Hub; answers: QuizAnswers }) {
   const [copied, setCopied] = useState(false);
-  const rawScores = useStoredScores();
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-  const shareText = `${r.emoji} 나의 도쿄 자취 성향: ${r.name}\n"${r.oneliner}"\n\n나도 테스트 해보기 👇`;
 
-  const scores = useMemo(() => {
-    if (!rawScores) return null;
-    const entries = (Object.entries(rawScores) as [Category, number][]).map(
-      ([cat, raw]) => ({ cat, name: CATEGORY_SCORE_NAME[cat], value: normalizeScore(cat, raw), raw })
-    );
-    const sorted = [...entries].sort((a, b) => b.value - a.value);
-    return { entries, top: sorted[0] };
-  }, [rawScores]);
+  const ranked = useMemo(() => scoreAreas({ ...answers, hub }), [answers, hub]);
+  const top = ranked[0];
+  const runners = ranked.slice(1, 3);
+
+  const shareText = `🏠 ${HUB_SHORT[hub]} 생활 중심 자취 추천\n🥇 ${top.area.name_ko} (${Math.round(top.total * 100)}점)\n\n나도 테스트 해보기 👇`;
 
   const onShare = async () => {
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         try {
-          await navigator.share({
-            title: `${r.emoji} 나의 도쿄 자취 성향: ${r.name}`,
-            text: shareText,
-            url: shareUrl,
-          });
+          await navigator.share({ title: `도쿄 자취 추천: ${top.area.name_ko}`, text: shareText, url: shareUrl });
           return;
         } catch {}
       }
@@ -89,10 +112,21 @@ function ResultView({ r }: { r: ResultType }) {
     }
   };
 
-  const fetchRecommended = useServerFn(getRecommendedListings);
-  const { data: recommended, isLoading: loadingListings } = useQuery({
-    queryKey: ["recommended-listings", r.slug],
-    queryFn: () => fetchRecommended({ data: { type: r.slug as LifeAreaSlug, limit: 3 } }),
+  const sizeRange = SIZE_BAND_RANGE[answers.size];
+  const fetchListings = useServerFn(getListingsForArea);
+  const { data: listings, isLoading: loadingListings } = useQuery({
+    queryKey: ["area-listings", top.area.slug, answers.budget, answers.roomTypes.join(","), answers.size],
+    queryFn: () =>
+      fetchListings({
+        data: {
+          stations: top.area.stations,
+          maxRentYen: answers.budget,
+          roomTypes: answers.roomTypes.length > 0 ? answers.roomTypes : undefined,
+          minSqm: sizeRange.min,
+          maxSqm: sizeRange.max,
+          limit: 5,
+        },
+      }),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -102,8 +136,7 @@ function ResultView({ r }: { r: ResultType }) {
       <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
 
       <div className="relative mx-auto w-full max-w-md px-5 pt-6">
-        {/* capture-able card area (인스타 스토리용) */}
-        <div className="rounded-3xl">
+        {/* Hero — 추천 1위 */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -111,114 +144,94 @@ function ResultView({ r }: { r: ResultType }) {
           className="overflow-hidden rounded-3xl bg-gradient-brand p-6 text-primary-foreground shadow-soft"
         >
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest opacity-90">
-            <span>YOUR TOKYO TYPE</span>
+            <span>🥇 RECOMMENDED AREA</span>
             <span>SOL HOUSING</span>
           </div>
-          <div className="mt-4 flex items-start justify-between gap-3">
+          <div className="mt-3 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-4xl">{r.emoji}</div>
-              <h1 className="mt-1 text-[26px] font-black leading-tight">{r.name}</h1>
-              <p className="mt-2 text-sm font-medium opacity-90">"{r.oneliner}"</p>
+              <p className="text-xs font-bold opacity-90">{HUB_SHORT[hub]} 생활권 기준</p>
+              <h1 className="mt-1 text-[30px] font-black leading-tight">{top.area.name_ko}</h1>
+              <p className="text-sm font-medium opacity-90">{top.area.name_ja}</p>
+              <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-bold">
+                매칭 {Math.round(top.total * 100)}점
+              </div>
             </div>
             <div className="flex shrink-0 items-center justify-center">
-              <img src={catFull} alt="마스코트" className="h-[10rem] w-auto object-contain" draggable={false} />
+              <img src={catFull} alt="마스코트" className="h-[9rem] w-auto object-contain" draggable={false} />
             </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+            <InfoChip label="평균 월세" value={`¥${top.area.avg_rent_yen.toLocaleString()}`} />
+            {top.hubAccess ? (
+              <InfoChip
+                label={`${HUB_SHORT[hub]}까지`}
+                value={`${top.hubAccess.minutes}분 · 환승 ${top.hubAccess.transfers}회`}
+              />
+            ) : (
+              <InfoChip label="초보 추천" value="가성비 · 치안 중심" />
+            )}
           </div>
         </motion.div>
 
-        {/* score bars */}
-        {scores && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-4 rounded-3xl bg-card p-4 shadow-card"
-          >
-            <h2 className="text-sm font-black text-foreground">나의 도쿄 자취 능력치</h2>
-            <div className="mt-3 space-y-2.5">
-              {scores.entries.map((s) => {
-                const isTop = s.cat === scores.top.cat;
-                return (
-                  <div key={s.cat}>
-                    <div className="flex items-center justify-between text-xs font-bold">
-                      <span className={isTop ? "text-primary" : "text-muted-foreground"}>{s.name}</span>
-                      <span className={isTop ? "text-primary" : "text-foreground/70"}>{s.value}점</span>
-                    </div>
-                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${s.value}%` }}
-                        transition={{ duration: 0.9, delay: 0.2 + 0.1, ease: "easeOut" }}
-                        className={`h-full rounded-full ${isTop ? "bg-gradient-to-r from-[var(--brand-soft)] to-[var(--accent-gold)]" : "bg-primary/25"}`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {scores.top && (
-              <div className="mt-3 rounded-2xl bg-primary/10 px-4 py-2.5 text-center">
-                <p className="text-xs font-bold text-muted-foreground">가장 높은 유형</p>
-                <p className="mt-1 text-base font-black text-primary">{scores.top.name}</p>
-              </div>
-            )}
-            <p className="mt-2 text-sm leading-relaxed text-foreground/80">{r.description}</p>
-          </motion.div>
-        )}
-
-        {/* regions */}
+        {/* 추천 이유 + 특징 */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
           className="mt-4 rounded-3xl bg-card p-5 shadow-card"
         >
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
-              <img src={catFace} alt="마스코트" className="h-9 w-9 object-contain" draggable={false} />
-            </div>
-            <h2 className="text-sm font-black text-foreground">당신에게 어울리는 동네 TOP3</h2>
+          <h2 className="text-sm font-black text-foreground">왜 이 지역인가요?</h2>
+          <p className="mt-2 text-sm leading-relaxed text-foreground/80">{top.area.description}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {top.topReasons.map((reason) => (
+              <span key={reason} className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary">
+                ✓ {reason}
+              </span>
+            ))}
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {r.regions.map((reg) => (
-              <span
-                key={reg}
-                className="rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary"
-              >
-                #{reg}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {top.area.features.map((f) => (
+              <span key={f} className="rounded-full border border-border bg-white/60 px-3 py-1 text-[11px] font-semibold text-foreground/70">
+                #{f}
               </span>
             ))}
           </div>
         </motion.div>
-        </div>
 
-        {/* triggers */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          className="mt-4 rounded-3xl bg-card p-5 shadow-card"
-        >
-          <h2 className="text-sm font-black text-foreground">왜 위험한가? 실제 이사 트리거</h2>
-          <ul className="mt-3 space-y-2">
-            {r.triggers.map((t, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
-                <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                <span>{t}</span>
-              </li>
-            ))}
-          </ul>
-        </motion.div>
+        {/* 차순위 */}
+        {runners.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="mt-4 rounded-3xl bg-card p-5 shadow-card"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                <img src={catFace} alt="마스코트" className="h-7 w-7 object-contain" draggable={false} />
+              </div>
+              <h2 className="text-sm font-black text-foreground">차순위 추천</h2>
+            </div>
+            <div className="mt-3 flex flex-col gap-2.5">
+              {runners.map((r, idx) => (
+                <RunnerCard key={r.area.slug} rank={idx + 2} r={r} hub={hub} />
+              ))}
+            </div>
+          </motion.div>
+        )}
 
-        {/* listings */}
+        {/* 실제 매물 */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.25 }}
           className="mt-6"
         >
-          <h2 className="text-base font-black text-foreground">추천 매물 TOP3</h2>
-          <p className="mt-1 text-xs text-muted-foreground">솔하우징 실시간 큐레이션 · 모집중 매물</p>
+          <h2 className="text-base font-black text-foreground">{top.area.name_ko} 실시간 매물</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            솔하우징 · 예산 ¥{answers.budget.toLocaleString()}{answers.roomTypes.length > 0 && ` · ${answers.roomTypes.join("/")}`} 기준
+          </p>
           <div className="mt-3 flex flex-col gap-3">
             {loadingListings && (
               <>
@@ -227,15 +240,14 @@ function ResultView({ r }: { r: ResultType }) {
                 <ListingSkeleton />
               </>
             )}
-            {!loadingListings && (!recommended || recommended.length === 0) && (
+            {!loadingListings && (!listings || listings.length === 0) && (
               <div className="rounded-2xl border border-dashed border-primary/20 bg-card p-5 text-center text-sm text-muted-foreground">
-                현재 이 유형 생활권에 모집중인 매물이 없어요.
+                조건에 맞는 모집중 매물이 없어요.
                 <br />
-                잠시 후 다시 시도해주세요.
+                예산을 조금 늘리거나 솔하우징에 문의해보세요.
               </div>
             )}
-            {!loadingListings &&
-              recommended?.map((l) => <ListingCard key={l.uid} l={l} />)}
+            {!loadingListings && listings?.map((l) => <ListingCard key={l.uid} l={l} />)}
           </div>
         </motion.div>
 
@@ -306,6 +318,38 @@ function ResultView({ r }: { r: ResultType }) {
       </div>
       <ScrollReset />
     </main>
+  );
+}
+
+function InfoChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/15 px-3 py-2 backdrop-blur">
+      <p className="text-[10px] font-bold uppercase opacity-80">{label}</p>
+      <p className="mt-0.5 text-[13px] font-black">{value}</p>
+    </div>
+  );
+}
+
+function RunnerCard({ rank, r, hub }: { rank: number; r: ScoredArea; hub: Hub }) {
+  const medal = rank === 2 ? "🥈" : "🥉";
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-white p-3">
+      <div className="text-2xl">{medal}</div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="truncate text-[15px] font-black text-foreground">{r.area.name_ko}</h3>
+          <span className="shrink-0 text-[11px] font-bold text-primary">{Math.round(r.total * 100)}점</span>
+        </div>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          ¥{r.area.avg_rent_yen.toLocaleString()}
+          {r.hubAccess && ` · ${HUB_SHORT[hub]} ${r.hubAccess.minutes}분`}
+          {r.hubAccess && ` · 환승 ${r.hubAccess.transfers}회`}
+        </p>
+        <p className="mt-1 truncate text-[11px] text-foreground/70">
+          {r.topReasons.slice(0, 2).map((x) => `✓${x}`).join("  ")}
+        </p>
+      </div>
+    </div>
   );
 }
 
