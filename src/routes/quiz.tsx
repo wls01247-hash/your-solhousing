@@ -7,6 +7,7 @@ import {
   ROOM_TYPES,
   SIZE_BAND_LABEL,
   STORAGE_KEY,
+  encodeAnswers,
   type Axis,
   type Hub,
   type QuizAnswers,
@@ -50,7 +51,11 @@ function QuizPage() {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
     } catch {}
-    navigate({ to: "/result/$slug", params: { slug: finalHub.toLowerCase() } });
+    navigate({
+      to: "/result/$slug",
+      params: { slug: finalHub.toLowerCase() },
+      search: encodeAnswers(answers),
+    });
   };
 
   const advance = () => {

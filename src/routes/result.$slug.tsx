@@ -6,8 +6,11 @@ import {
   HUB_SHORT,
   STORAGE_KEY,
   SIZE_BAND_RANGE,
+  decodeAnswers,
   type Hub,
   type QuizAnswers,
+  type ResultSearch,
+  type SizeBand,
 } from "@/lib/quiz-data";
 import { scoreAreas, type ScoredArea } from "@/lib/recommendation";
 import catFace from "@/assets/cat-face-only.png";
@@ -25,6 +28,17 @@ function slugToHub(slug: string): Hub | null {
 }
 
 export const Route = createFileRoute("/result/$slug")({
+  // 공유 링크로 전달된 답변(쿼리스트링)을 파싱. 형식이 어긋난 값은 흘려보내고
+  // decodeAnswers 에서 최종 검증한다. (기본 파서가 숫자형 문자열을 number 로
+  // 바꿔버리므로 a/r/s 는 String() 으로 다시 문자열화)
+  validateSearch: (search: Record<string, unknown>): Partial<ResultSearch> => {
+    const out: Partial<ResultSearch> = {};
+    if (search.a != null) out.a = String(search.a);
+    if (search.b != null && Number.isFinite(Number(search.b))) out.b = Number(search.b);
+    if (search.r != null) out.r = String(search.r);
+    if (search.s != null) out.s = String(search.s) as SizeBand;
+    return out;
+  },
   head: ({ params }) => {
     const hub = slugToHub(params.slug);
     const title = hub
@@ -47,15 +61,23 @@ export const Route = createFileRoute("/result/$slug")({
 
 function ResultPage() {
   const { slug } = useParams({ from: "/result/$slug" });
+  const search = Route.useSearch();
   const hub = slugToHub(slug);
-  const answers = useStoredAnswers();
+  const storedAnswers = useStoredAnswers();
+  // 공유 링크의 쿼리스트링을 우선 사용하고, 없으면 sessionStorage 로 폴백.
+  const answers = useMemo(
+    () => (hub ? (decodeAnswers(hub, search) ?? storedAnswers) : null),
+    [hub, search, storedAnswers],
+  );
 
   if (!hub) {
     return (
       <main className="flex min-h-screen items-center justify-center p-6 text-center">
         <div>
           <p className="text-lg font-bold">결과를 찾을 수 없어요</p>
-          <Link to="/" className="mt-4 inline-block text-primary underline">처음으로</Link>
+          <Link to="/" className="mt-4 inline-block text-primary underline">
+            처음으로
+          </Link>
         </div>
       </main>
     );
@@ -66,13 +88,17 @@ function ResultPage() {
       <main className="flex min-h-screen items-center justify-center bg-gradient-soft p-6 text-center">
         <div>
           <p className="text-sm text-muted-foreground">결과 데이터를 불러오는 중...</p>
-          <Link to="/quiz" className="mt-4 inline-block text-primary underline">테스트 다시 하기</Link>
+          <Link to="/quiz" className="mt-4 inline-block text-primary underline">
+            테스트 다시 하기
+          </Link>
         </div>
       </main>
     );
   }
 
-  return <ResultView hub={hub} answers={answers} />;
+  // 본인(이 브라우저에서 직접 퀴즈를 푼 사람)만 sessionStorage 를 가진다.
+  // 공유 링크로 들어온 사람은 URL 쿼리로만 답변이 복원되므로 storedAnswers 가 없다.
+  return <ResultView hub={hub} answers={answers} isOwner={storedAnswers != null} />;
 }
 
 function useStoredAnswers(): QuizAnswers | null {
@@ -86,7 +112,15 @@ function useStoredAnswers(): QuizAnswers | null {
   return answers;
 }
 
-function ResultView({ hub, answers }: { hub: Hub; answers: QuizAnswers }) {
+function ResultView({
+  hub,
+  answers,
+  isOwner,
+}: {
+  hub: Hub;
+  answers: QuizAnswers;
+  isOwner: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
@@ -100,7 +134,11 @@ function ResultView({ hub, answers }: { hub: Hub; answers: QuizAnswers }) {
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         try {
-          await navigator.share({ title: `도쿄 자취 추천: ${top.area.name_ko}`, text: shareText, url: shareUrl });
+          await navigator.share({
+            title: `도쿄 자취 추천: ${top.area.name_ko}`,
+            text: shareText,
+            url: shareUrl,
+          });
           return;
         } catch {}
       }
@@ -115,7 +153,13 @@ function ResultView({ hub, answers }: { hub: Hub; answers: QuizAnswers }) {
   const sizeRange = SIZE_BAND_RANGE[answers.size];
   const fetchListings = useServerFn(getListingsForArea);
   const { data: listings, isLoading: loadingListings } = useQuery({
-    queryKey: ["area-listings", top.area.slug, answers.budget, answers.roomTypes.join(","), answers.size],
+    queryKey: [
+      "area-listings",
+      top.area.slug,
+      answers.budget,
+      answers.roomTypes.join(","),
+      answers.size,
+    ],
     queryFn: () =>
       fetchListings({
         data: {
@@ -157,7 +201,12 @@ function ResultView({ hub, answers }: { hub: Hub; answers: QuizAnswers }) {
               </div>
             </div>
             <div className="flex shrink-0 items-center justify-center">
-              <img src={catFull} alt="마스코트" className="h-[9rem] w-auto object-contain" draggable={false} />
+              <img
+                src={catFull}
+                alt="마스코트"
+                className="h-[9rem] w-auto object-contain"
+                draggable={false}
+              />
             </div>
           </div>
 
@@ -185,14 +234,20 @@ function ResultView({ hub, answers }: { hub: Hub; answers: QuizAnswers }) {
           <p className="mt-2 text-sm leading-relaxed text-foreground/80">{top.area.description}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {top.topReasons.map((reason) => (
-              <span key={reason} className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary">
+              <span
+                key={reason}
+                className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary"
+              >
                 ✓ {reason}
               </span>
             ))}
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {top.area.features.map((f) => (
-              <span key={f} className="rounded-full border border-border bg-white/60 px-3 py-1 text-[11px] font-semibold text-foreground/70">
+              <span
+                key={f}
+                className="rounded-full border border-border bg-white/60 px-3 py-1 text-[11px] font-semibold text-foreground/70"
+              >
                 #{f}
               </span>
             ))}
@@ -209,7 +264,12 @@ function ResultView({ hub, answers }: { hub: Hub; answers: QuizAnswers }) {
           >
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                <img src={catFace} alt="마스코트" className="h-7 w-7 object-contain" draggable={false} />
+                <img
+                  src={catFace}
+                  alt="마스코트"
+                  className="h-7 w-7 object-contain"
+                  draggable={false}
+                />
               </div>
               <h2 className="text-sm font-black text-foreground">차순위 추천</h2>
             </div>
@@ -230,7 +290,8 @@ function ResultView({ hub, answers }: { hub: Hub; answers: QuizAnswers }) {
         >
           <h2 className="text-base font-black text-foreground">{top.area.name_ko} 실시간 매물</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            솔하우징 · 예산 ¥{answers.budget.toLocaleString()}{answers.roomTypes.length > 0 && ` · ${answers.roomTypes.join("/")}`} 기준
+            솔하우징 · 예산 ¥{answers.budget.toLocaleString()}
+            {answers.roomTypes.length > 0 && ` · ${answers.roomTypes.join("/")}`} 기준
           </p>
           <div className="mt-3 flex flex-col gap-3">
             {loadingListings && (
@@ -251,67 +312,73 @@ function ResultView({ hub, answers }: { hub: Hub; answers: QuizAnswers }) {
           </div>
         </motion.div>
 
-        {/* bottom actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
-          className="mt-8 rounded-3xl bg-card p-5 shadow-card"
-        >
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15">
-              <img src={catFace} alt="마스코트" className="h-7 w-7 object-contain" draggable={false} />
+        {/* bottom actions — 본인에게만 노출(공유 링크로 들어온 사람에겐 숨김) */}
+        {isOwner && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.35 }}
+            className="mt-8 rounded-3xl bg-card p-5 shadow-card"
+            id="share"
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15">
+                <img
+                  src={catFace}
+                  alt="마스코트"
+                  className="h-7 w-7 object-contain"
+                  draggable={false}
+                />
+              </div>
+              <h2 className="text-sm font-black text-foreground">결과 공유하기</h2>
             </div>
-            <h2 className="text-sm font-black text-foreground">결과 공유하기</h2>
-          </div>
 
-          <div className="mt-4 flex flex-col gap-2.5">
-            <a
-              href="https://pf.kakao.com/_iKBxfK"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-kakao py-4 text-sm font-bold text-kakao-foreground shadow-[0_4px_12px_-4px_rgba(254,229,0,0.5)] transition active:scale-[0.98]"
-            >
-              <MessageCircle size={18} />
-              이 결과 기준으로 상담하기
-            </a>
+            <div className="mt-4 flex flex-col gap-2.5">
+              <a
+                href="https://pf.kakao.com/_iKBxfK"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-kakao py-4 text-sm font-bold text-kakao-foreground shadow-[0_4px_12px_-4px_rgba(254,229,0,0.5)] transition active:scale-[0.98]"
+              >
+                <MessageCircle size={18} />이 결과 기준으로 상담하기
+              </a>
 
-            <a
-              href="https://www.instagram.com/solhousing/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#feda75] via-[#d62976] to-[#4f5bd5] py-3.5 text-sm font-bold text-white shadow-soft transition active:scale-[0.98]"
-            >
-              <Instagram size={16} />
-              솔하우징 인스타 팔로우
-            </a>
+              <a
+                href="https://www.instagram.com/solhousing/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#feda75] via-[#d62976] to-[#4f5bd5] py-3.5 text-sm font-bold text-white shadow-soft transition active:scale-[0.98]"
+              >
+                <Instagram size={16} />
+                솔하우징 인스타 팔로우
+              </a>
 
-            <button
-              onClick={onShare}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
-            >
-              <Share2 size={16} />
-              {copied ? "링크 복사 완료!" : "친구한테 공유하기"}
-            </button>
+              <button
+                onClick={onShare}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-soft transition active:scale-[0.98]"
+              >
+                <Share2 size={16} />
+                {copied ? "링크 복사 완료!" : "친구한테 공유하기"}
+              </button>
 
-            <a
-              href="https://solhousing.com/01_search/list.php?thema=1"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 py-3.5 text-sm font-bold text-primary transition active:scale-[0.98]"
-            >
-              <ExternalLink size={16} />
-              더 다양한 집보기
-            </a>
-          </div>
-        </motion.div>
+              <a
+                href="https://solhousing.com/01_search/list.php?thema=1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 py-3.5 text-sm font-bold text-primary transition active:scale-[0.98]"
+              >
+                <ExternalLink size={16} />더 다양한 집보기
+              </a>
+            </div>
+          </motion.div>
+        )}
 
         <div className="mt-6 flex flex-col items-center gap-2 pb-8">
           <Link
             to="/"
             className="text-xs font-bold text-muted-foreground underline underline-offset-2"
           >
-            테스트 다시 하기
+            {isOwner ? "테스트 다시 하기" : "테스트 해보기"}
           </Link>
           <p className="text-[11px] text-muted-foreground">© SOL HOUSING — 도쿄 자취 큐레이션</p>
         </div>
@@ -338,7 +405,9 @@ function RunnerCard({ rank, r, hub }: { rank: number; r: ScoredArea; hub: Hub })
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="truncate text-[15px] font-black text-foreground">{r.area.name_ko}</h3>
-          <span className="shrink-0 text-[11px] font-bold text-primary">{Math.round(r.total * 100)}점</span>
+          <span className="shrink-0 text-[11px] font-bold text-primary">
+            {Math.round(r.total * 100)}점
+          </span>
         </div>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           ¥{r.area.avg_rent_yen.toLocaleString()}
@@ -346,7 +415,10 @@ function RunnerCard({ rank, r, hub }: { rank: number; r: ScoredArea; hub: Hub })
           {r.hubAccess && ` · 환승 ${r.hubAccess.transfers}회`}
         </p>
         <p className="mt-1 truncate text-[11px] text-foreground/70">
-          {r.topReasons.slice(0, 2).map((x) => `✓${x}`).join("  ")}
+          {r.topReasons
+            .slice(0, 2)
+            .map((x) => `✓${x}`)
+            .join("  ")}
         </p>
       </div>
     </div>
@@ -385,7 +457,9 @@ function ListingCard({ l }: { l: ListingDTO }) {
       <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
         <div>
           <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 truncate text-[14px] font-extrabold text-foreground">{titleText}</h3>
+            <h3 className="min-w-0 truncate text-[14px] font-extrabold text-foreground">
+              {titleText}
+            </h3>
             {l.room_type && (
               <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                 {l.room_type}
@@ -393,8 +467,7 @@ function ListingCard({ l }: { l: ListingDTO }) {
             )}
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {l.station_name ?? "-"}駅
-            {l.walk_minutes != null && ` · 도보 ${l.walk_minutes}분`}
+            {l.station_name ?? "-"}駅{l.walk_minutes != null && ` · 도보 ${l.walk_minutes}분`}
             {l.size_sqm != null && ` · ${l.size_sqm}㎡`}
           </p>
         </div>

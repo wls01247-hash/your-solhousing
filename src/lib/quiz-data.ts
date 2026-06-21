@@ -225,3 +225,52 @@ export function axisPercent(axis: Axis, raw: number): number {
 }
 
 export const STORAGE_KEY = "tokyo-quiz-answers";
+
+// ---------- 공유용: 답변을 URL 쿼리스트링으로 인코딩/디코딩 ----------
+// hub 는 slug(/result/$slug)에 담기므로 쿼리에는 나머지 답변만 싣는다.
+
+// axes 직렬화 순서(고정). 이 순서가 바뀌면 기존 공유 링크가 깨지므로 변경 금지.
+const AXIS_ORDER: Axis[] = ["BUDGET", "COMMUTE", "VIBE", "CONVENIENCE", "SAFETY", "SIZE"];
+const SIZE_BANDS = Object.keys(SIZE_BAND_LABEL) as SizeBand[];
+
+// 결과 페이지의 검색 파라미터:
+//   a: axes 값을 AXIS_ORDER 순서로 "."으로 연결 (예: "20.19.0.7.8.14")
+//   b: 월세 예산(숫자)
+//   r: 선택한 방 구조의 ROOM_TYPES 인덱스를 이어붙임 (예: "13" = 1K+1LDK), 없으면 생략
+//   s: 평수 밴드(S/M/L/XL)
+export interface ResultSearch {
+  a: string;
+  b: number;
+  r?: string;
+  s: SizeBand;
+}
+
+export function encodeAnswers(ans: QuizAnswers): ResultSearch {
+  return {
+    a: AXIS_ORDER.map((ax) => ans.axes[ax]).join("."),
+    b: ans.budget,
+    r: ans.roomTypes.map((rt) => ROOM_TYPES.indexOf(rt)).join("") || undefined,
+    s: ans.size,
+  };
+}
+
+// 검색 파라미터 + slug 의 hub 로 QuizAnswers 복원. 형식이 조금이라도 어긋나면 null 반환.
+export function decodeAnswers(hub: Hub, search: Partial<ResultSearch>): QuizAnswers | null {
+  const { a, b, r, s } = search;
+  if (typeof a !== "string" || typeof b !== "number" || !Number.isFinite(b)) return null;
+  if (typeof s !== "string" || !SIZE_BANDS.includes(s as SizeBand)) return null;
+
+  const parts = a.split(".").map(Number);
+  if (parts.length !== AXIS_ORDER.length || parts.some((n) => !Number.isFinite(n))) return null;
+
+  const axes: Record<Axis, number> = { ...EMPTY_AXES };
+  AXIS_ORDER.forEach((ax, i) => {
+    axes[ax] = parts[i];
+  });
+
+  const roomTypes = (typeof r === "string" ? r.split("") : [])
+    .map((d) => ROOM_TYPES[Number(d)])
+    .filter((rt): rt is RoomType => Boolean(rt));
+
+  return { hub, axes, budget: b, roomTypes, size: s as SizeBand };
+}
