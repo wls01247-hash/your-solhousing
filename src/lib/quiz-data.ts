@@ -177,11 +177,6 @@ export const questions: Question[] = [
   },
   {
     id: 11,
-    kind: "roomType",
-    prompt: "원하는 방 구조는?\n(복수 선택 가능)",
-  },
-  {
-    id: 12,
     kind: "size",
     prompt: "원하는 평수는?",
   },
@@ -193,7 +188,6 @@ export interface QuizAnswers {
   hub: Hub;
   axes: Record<Axis, number>;
   budget: number;
-  roomTypes: RoomType[];
   size: SizeBand;
 }
 
@@ -234,31 +228,32 @@ const AXIS_ORDER: Axis[] = ["BUDGET", "COMMUTE", "VIBE", "CONVENIENCE", "SAFETY"
 const SIZE_BANDS = Object.keys(SIZE_BAND_LABEL) as SizeBand[];
 
 // 결과 페이지의 검색 파라미터:
-//   a: axes 값을 AXIS_ORDER 순서로 "."으로 연결 (예: "20.19.0.7.8.14")
+//   a: axes 값을 AXIS_ORDER 순서로 "."으로 연결
 //   b: 월세 예산(숫자)
-//   r: 선택한 방 구조의 ROOM_TYPES 인덱스를 이어붙임 (예: "13" = 1K+1LDK), 없으면 생략
 //   s: 평수 밴드(S/M/L/XL)
+//   h: 생활 중심지(hub) — slug 가 personality 가 되므로 hub 를 쿼리에 싣는다
 export interface ResultSearch {
   a: string;
   b: number;
-  r?: string;
   s: SizeBand;
+  h: Hub;
 }
 
 export function encodeAnswers(ans: QuizAnswers): ResultSearch {
   return {
     a: AXIS_ORDER.map((ax) => ans.axes[ax]).join("."),
     b: ans.budget,
-    r: ans.roomTypes.map((rt) => ROOM_TYPES.indexOf(rt)).join("") || undefined,
     s: ans.size,
+    h: ans.hub,
   };
 }
 
-// 검색 파라미터 + slug 의 hub 로 QuizAnswers 복원. 형식이 조금이라도 어긋나면 null 반환.
-export function decodeAnswers(hub: Hub, search: Partial<ResultSearch>): QuizAnswers | null {
-  const { a, b, r, s } = search;
+// 검색 파라미터로 QuizAnswers 복원. 형식이 조금이라도 어긋나면 null 반환.
+export function decodeAnswers(search: Partial<ResultSearch>): QuizAnswers | null {
+  const { a, b, s, h } = search;
   if (typeof a !== "string" || typeof b !== "number" || !Number.isFinite(b)) return null;
   if (typeof s !== "string" || !SIZE_BANDS.includes(s as SizeBand)) return null;
+  const hub: Hub = (typeof h === "string" && (["SHINJUKU","SHIBUYA","TOKYO","IKEBUKURO","UNSURE"] as string[]).includes(h)) ? (h as Hub) : "UNSURE";
 
   const parts = a.split(".").map(Number);
   if (parts.length !== AXIS_ORDER.length || parts.some((n) => !Number.isFinite(n))) return null;
@@ -268,9 +263,91 @@ export function decodeAnswers(hub: Hub, search: Partial<ResultSearch>): QuizAnsw
     axes[ax] = parts[i];
   });
 
-  const roomTypes = (typeof r === "string" ? r.split("") : [])
-    .map((d) => ROOM_TYPES[Number(d)])
-    .filter((rt): rt is RoomType => Boolean(rt));
+  return { hub, axes, budget: b, size: s as SizeBand };
+}
 
-  return { hub, axes, budget: b, roomTypes, size: s as SizeBand };
+// ============================================================
+// MBTI 스타일 성향 (4 능력치 + 대표 유형)
+// ============================================================
+
+export type PersonalityType = "MOVE" | "SAVE" | "HOME" | "LIFE";
+
+export interface PersonalityMeta {
+  type: PersonalityType;
+  name: string;        // 유형명
+  catchphrase: string; // 대표 한 줄
+  emoji: string;
+  description: string;
+  abilityLabel: string; // 4 능력치 그래프에서 본인 축 라벨
+}
+
+export const PERSONALITY: Record<PersonalityType, PersonalityMeta> = {
+  MOVE: {
+    type: "MOVE",
+    name: "환승 알레르기형",
+    catchphrase: '"월세 1만엔보다 내 아침 10분이 더 소중함"',
+    emoji: "🚇",
+    description:
+      "당신에게 동네는 곧 '역'입니다. 환승 한 번 더 끼는 순간 후보에서 탈락. 출근길 만원 전철은 인생의 적입니다.",
+    abilityLabel: "환승력",
+  },
+  SAVE: {
+    type: "SAVE",
+    name: "월세 수호신형",
+    catchphrase: '"오늘 아낀 5천엔이 내일의 자유"',
+    emoji: "💸",
+    description:
+      "당신은 1엔 단위의 가성비 사냥꾼. 같은 평수면 무조건 더 싼 쪽, 초기비용 계산은 머릿속 엑셀로 이미 끝났습니다.",
+    abilityLabel: "절약력",
+  },
+  HOME: {
+    type: "HOME",
+    name: "집순이 끝판왕형",
+    catchphrase: '"집이 곧 우주, 평수가 곧 행복"',
+    emoji: "🏠",
+    description:
+      "당신은 집 안에서 인생의 80%를 보내는 사람. 넓은 평수, 조용한 동네, 도보권 편의점이 행복의 3대 요소입니다.",
+    abilityLabel: "집순력",
+  },
+  LIFE: {
+    type: "LIFE",
+    name: "감성 수집가형",
+    catchphrase: '"동네 카페·서점 없으면 못 살아"',
+    emoji: "☕",
+    description:
+      "당신에게 집은 동네 풍경의 일부. 골목 카페·작은 책방·로컬 이자카야가 있어야 비로소 '내 동네'가 됩니다.",
+    abilityLabel: "감성력",
+  },
+};
+
+export interface Abilities {
+  MOVE: number;   // 0-100 (환승력 = 통근 효율)
+  SAVE: number;   // 0-100 (절약력 = 예산 민감도)
+  HOME: number;   // 0-100 (집순력 = SIZE + CONVENIENCE + SAFETY)
+  LIFE: number;   // 0-100 (감성력 = VIBE)
+}
+
+export function computeAbilities(axes: Record<Axis, number>): Abilities {
+  const move = normalizeAxis("COMMUTE", axes.COMMUTE);
+  const save = normalizeAxis("BUDGET", axes.BUDGET);
+  const home =
+    (normalizeAxis("SIZE", axes.SIZE) +
+      normalizeAxis("CONVENIENCE", axes.CONVENIENCE) +
+      normalizeAxis("SAFETY", axes.SAFETY)) /
+    3;
+  const life = normalizeAxis("VIBE", axes.VIBE);
+
+  // 0-1 → 0-100 점, 최소 0 최대 100 으로 살짝 스트레치
+  const stretch = (v: number) => Math.round(Math.min(1, v * 1.15) * 100);
+  return { MOVE: stretch(move), SAVE: stretch(save), HOME: stretch(home), LIFE: stretch(life) };
+}
+
+export function topPersonality(ab: Abilities): PersonalityType {
+  return (Object.entries(ab) as [PersonalityType, number][])
+    .sort((a, b) => b[1] - a[1])[0][0];
+}
+
+export function personalityFromSlug(slug: string): PersonalityType | null {
+  const u = slug.toUpperCase();
+  return (["MOVE", "SAVE", "HOME", "LIFE"] as string[]).includes(u) ? (u as PersonalityType) : null;
 }

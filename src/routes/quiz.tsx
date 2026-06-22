@@ -4,14 +4,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   questions,
   EMPTY_AXES,
-  ROOM_TYPES,
   SIZE_BAND_LABEL,
   STORAGE_KEY,
   encodeAnswers,
+  computeAbilities,
+  topPersonality,
   type Axis,
   type Hub,
   type QuizAnswers,
-  type RoomType,
   type SizeBand,
 } from "@/lib/quiz-data";
 import { Cat } from "@/components/Cat";
@@ -33,7 +33,6 @@ function QuizPage() {
   const [hub, setHub] = useState<Hub | null>(null);
   const [axes, setAxes] = useState<Record<Axis, number>>({ ...EMPTY_AXES });
   const [budget, setBudget] = useState<number>(90000);
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [size, setSize] = useState<SizeBand | null>(null);
 
   const q = questions[step];
@@ -45,15 +44,16 @@ function QuizPage() {
       hub: finalHub,
       axes,
       budget,
-      roomTypes,
       size: finalSize,
     };
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
     } catch {}
+    // 결과 페이지 slug 는 성향(MOVE/SAVE/HOME/LIFE)
+    const personality = topPersonality(computeAbilities(answers.axes));
     navigate({
       to: "/result/$slug",
-      params: { slug: finalHub.toLowerCase() },
+      params: { slug: personality.toLowerCase() },
       search: encodeAnswers(answers),
     });
   };
@@ -72,10 +72,6 @@ function QuizPage() {
     advance();
   };
   const submitBudget = () => advance();
-  const toggleRoom = (rt: RoomType) => {
-    setRoomTypes((prev) => (prev.includes(rt) ? prev.filter((x) => x !== rt) : [...prev, rt]));
-  };
-  const submitRooms = () => advance();
   const pickSize = (s: SizeBand) => {
     setSize(s);
     if (hub) finish(hub, s);
@@ -163,45 +159,6 @@ function QuizPage() {
                     다음
                   </button>
                 </div>
-              )}
-
-              {q.kind === "roomType" && (
-                <>
-                  {ROOM_TYPES.map((rt, i) => {
-                    const active = roomTypes.includes(rt);
-                    return (
-                      <motion.button
-                        key={rt}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.05 * i }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => toggleRoom(rt)}
-                        className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left shadow-card transition ${
-                          active
-                            ? "border-primary bg-primary/10"
-                            : "border-border bg-card hover:border-primary"
-                        }`}
-                      >
-                        <span
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${
-                            active ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
-                          }`}
-                        >
-                          {active ? "✓" : "·"}
-                        </span>
-                        <span className="text-[15px] font-bold text-foreground">{rt}</span>
-                      </motion.button>
-                    );
-                  })}
-                  <button
-                    onClick={submitRooms}
-                    disabled={roomTypes.length === 0}
-                    className="mt-2 w-full rounded-2xl bg-gradient-brand py-3.5 text-sm font-bold text-primary-foreground shadow-soft disabled:opacity-50"
-                  >
-                    다음 ({roomTypes.length}개 선택)
-                  </button>
-                </>
               )}
 
               {q.kind === "size" &&
