@@ -6,10 +6,10 @@ import type { ListingDTO } from "./listings.functions";
 const inputSchema = z.object({
   stations: z.array(z.string()).min(1).max(20),
   maxRentYen: z.number().int().positive().optional(),
-  roomTypes: z.array(z.string()).optional(),
   minSqm: z.number().nonnegative().optional(),
   maxSqm: z.number().nonnegative().nullable().optional(),
   limit: z.number().int().min(1).max(20).default(5),
+  minResults: z.number().int().min(0).max(20).default(3),
 });
 
 function normalizeStation(s: string): string {
@@ -39,9 +39,6 @@ export const getListingsForArea = createServerFn({ method: "GET" })
       // 예산 + 10% 여유까지 허용
       q = q.lte("rent_yen", Math.round(data.maxRentYen * 1.1));
     }
-    if (data.roomTypes && data.roomTypes.length > 0) {
-      q = q.in("room_type", data.roomTypes);
-    }
     if (data.minSqm && data.minSqm > 0) {
       q = q.gte("size_sqm", data.minSqm * 0.85);
     }
@@ -52,7 +49,6 @@ export const getListingsForArea = createServerFn({ method: "GET" })
     const { data: rows, error } = await q.limit(data.limit * 5);
     if (error) {
       console.error("[getListingsForArea]", error);
-      return [];
     }
 
     const list = (rows ?? []) as (ListingDTO & { station_name_normalized?: string | null })[];
@@ -83,5 +79,34 @@ export const getListingsForArea = createServerFn({ method: "GET" })
       void _n;
       result.push(dto);
     }
-    return result;
+
+    // 결과 부족하면 전체 available 매물에서 예산 근접 순으로 보충
+    if (result.length < data.minResults) {
+      const need = data.limit - result.length;
+      const seenUids = new Set(result.map((r) => r.uid));
+      const { data: allRows } = await supabase
+        .from("listings")
+        .select(
+          "uid, title, address, station_name, station_line, walk_minutes, rent_yen, maintenance_fee_yen, room_type, size_sqm, image_url, property_url",
+        )
+        .eq("contract_status", "available")
+        .not("rent_yen", "is", null)
+        .limit(500);
+
+      const fallback = ((allRows ?? []) as ListingDTO[])
+        .filter((r) => !seenUids.has(r.uid))
+        .map((r) => ({ r, diff: Math.abs((r.rent_yen ?? 0) - budget) }))
+        .sort((a, b) => a.diff - b.diff);
+
+      for (const { r } of fallback) {
+        if (result.length >= Math.max(data.minResults, data.limit)) break;
+        const key = (r.address?.trim() || r.title?.trim() || `uid:${r.uid}`).toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        result.push(r);
+        if (result.length >= need + (data.limit - need)) break;
+      }
+    }
+
+    return result.slice(0, data.limit);
   });
