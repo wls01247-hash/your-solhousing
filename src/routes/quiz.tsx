@@ -7,6 +7,8 @@ import {
   SIZE_BAND_LABEL,
   STORAGE_KEY,
   encodeAnswers,
+  computeAbilities,
+  topPersonality,
   type Axis,
   type Hub,
   type QuizAnswers,
@@ -47,27 +49,14 @@ function QuizPage() {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
     } catch {}
-    // 결과 페이지 slug 는 성향(MOVE/SAVE/HOME/LIFE) 으로 정한다 — result 컴포넌트에서 계산.
-    // 여기서는 정리 후 navigate 의 to 는 그대로 hub slug 가 아닌 placeholder
-    import("@/lib/quiz-data").then(({ computeAbilities, topPersonality }) => {
-      const ability = computeAbilities(answers.axes);
-      const personality = topPersonality(ability);
-      navigate({
-        to: "/result/$slug",
-        params: { slug: personality.toLowerCase() },
-        search: encodeAnswers(answers),
-      });
-    });
-    return;
-  };
-  // (구) navigate 호출은 finish 안에서만 한다 — 아래 dead-block 제거용 placeholder
-  void (() => {
+    // 결과 페이지 slug 는 성향(MOVE/SAVE/HOME/LIFE)
+    const personality = topPersonality(computeAbilities(answers.axes));
     navigate({
       to: "/result/$slug",
-      params: { slug: "move" },
-      search: { a: "", b: 0, s: "S", h: "UNSURE" },
+      params: { slug: personality.toLowerCase() },
+      search: encodeAnswers(answers),
     });
-  });
+  };
 
   const advance = () => {
     if (step + 1 >= questions.length) return; // 마지막 단계는 finish() 로 처리
