@@ -149,7 +149,7 @@ function ResultView({
           maxRentYen: answers.budget,
           minSqm: sizeRange.min,
           maxSqm: sizeRange.max,
-          limit: 5,
+          limit: 3,
           minResults: 3,
         },
       }),

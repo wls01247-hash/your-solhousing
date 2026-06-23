@@ -80,9 +80,10 @@ export const getListingsForArea = createServerFn({ method: "GET" })
       result.push(dto);
     }
 
-    // 결과 부족하면 전체 available 매물에서 예산 근접 순으로 보충
+    // A. 적합 매물 3개 이상 → 상위 매물만 사용
+    // B. 적합 매물 1~2개 → 전체 available 중 예산이 가장 가까운 유사 매물로 부족분 보충
+    // C. 적합 매물 0개 → 전체 available 중 예산이 가장 가까운 매물 3개 추천
     if (result.length < data.minResults) {
-      const need = data.limit - result.length;
       const seenUids = new Set(result.map((r) => r.uid));
       const { data: allRows } = await supabase
         .from("listings")
@@ -99,14 +100,13 @@ export const getListingsForArea = createServerFn({ method: "GET" })
         .sort((a, b) => a.diff - b.diff);
 
       for (const { r } of fallback) {
-        if (result.length >= Math.max(data.minResults, data.limit)) break;
+        if (result.length >= data.minResults) break;
         const key = (r.address?.trim() || r.title?.trim() || `uid:${r.uid}`).toLowerCase();
         if (seen.has(key)) continue;
         seen.add(key);
         result.push(r);
-        if (result.length >= need + (data.limit - need)) break;
       }
     }
 
-    return result.slice(0, data.limit);
+    return result.slice(0, Math.max(data.minResults, data.limit));
   });
