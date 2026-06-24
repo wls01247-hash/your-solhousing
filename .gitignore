@@ -17,6 +17,9 @@ dist-ssr
 .nitro
 *.local
 
+# Secrets — keep local only (Vercel env vars / GitHub Secrets hold the real values)
+.env
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
