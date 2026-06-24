@@ -178,7 +178,7 @@ function ResultView({
             <div className="min-w-0">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-2xl">
                 {meta.emoji}
-              </div>
+              </div> 
               <h1 className="mt-3 text-[25px] font-black leading-tight">{meta.name}</h1>
               <p className="mt-2 text-sm font-medium leading-relaxed opacity-95">{meta.catchphrase}</p>
             </div>
