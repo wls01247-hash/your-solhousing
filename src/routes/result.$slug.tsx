@@ -179,7 +179,7 @@ function ResultView({
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-2xl">
                 {meta.emoji}
               </div>
-              <h1 className="mt-3 text-[30px] font-black leading-tight">{meta.name}</h1>
+              <h1 className="mt-3 text-[25px] font-black leading-tight">{meta.name}</h1>
               <p className="mt-2 text-sm font-medium leading-relaxed opacity-95">{meta.catchphrase}</p>
             </div>
             <img src={catFull} alt="마스코트" className="h-[9rem] w-auto shrink-0 object-contain" draggable={false} />
