@@ -1,0 +1,33 @@
+name: Sync SolHousing listings
+
+on:
+  schedule:
+    # Every 6 hours (UTC) = JST 09, 15, 21, 03
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: "Max list pages to crawl (1~80)"
+        required: false
+        default: "80"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm install --no-save @supabase/supabase-js@^2.45.0
+
+      - name: Run crawler
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MAX_PAGES: ${{ github.event.inputs.max_pages || '80' }}
+        run: node scripts/sync-listings.mjs
