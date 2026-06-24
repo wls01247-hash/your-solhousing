@@ -2,7 +2,7 @@ name: Sync SolHousing listings
 
 on:
   schedule:
-    # 매 6시간마다 (UTC 기준 0, 6, 12, 18시 = JST 09, 15, 21, 03시)
+    # Every 6 hours (UTC) = JST 09, 15, 21, 03
     - cron: "0 */6 * * *"
   workflow_dispatch:
     inputs:
@@ -14,47 +14,20 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Trigger sync endpoint
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm install --no-save @supabase/supabase-js@^2.45.0
+
+      - name: Run crawler
         env:
-          SYNC_URL: ${{ secrets.SYNC_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MAX_PAGES: ${{ github.event.inputs.max_pages || '80' }}
-        run: |
-          set -euo pipefail
-          if [ -z "${SYNC_URL:-}" ]; then
-            echo "::error::SYNC_URL secret is not configured."
-            echo "Set it to the deployed sync endpoint, e.g.:"
-            echo "  https://project--<PROJECT_ID>.lovable.app/api/public/hooks/sync-listings"
-            exit 1
-          fi
-
-          URL="${SYNC_URL}?max_pages=${MAX_PAGES}"
-          echo "POST $URL"
-
-          HTTP_CODE=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
-            -X POST \
-            -H "Content-Type: application/json" \
-            --max-time 240 \
-            "$URL")
-
-          echo "HTTP $HTTP_CODE"
-          echo "--- response ---"
-          cat /tmp/resp.json
-          echo
-          echo "----------------"
-
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "::error::Sync endpoint returned HTTP $HTTP_CODE"
-            exit 1
-          fi
-
-          # Fail the job if the endpoint returned success=false
-          if command -v jq >/dev/null 2>&1; then
-            SUCCESS=$(jq -r '.success' /tmp/resp.json)
-            if [ "$SUCCESS" != "true" ]; then
-              echo "::error::Sync reported success=false"
-              exit 1
-            fi
-            echo "✅ upserted=$(jq -r '.listings_upserted' /tmp/resp.json) | available=$(jq -r '.available' /tmp/resp.json) | soft_closed=$(jq -r '.soft_closed' /tmp/resp.json)"
-          fi
+        run: node scripts/sync-listings.mjs
