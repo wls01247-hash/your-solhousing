@@ -358,8 +358,12 @@ function ScrollReset() {
 function ListingCard({ l }: { l: ListingDTO }) {
   const titleText = l.title?.split("\n")[0] || l.address || "매물";
   return (
-    <motion.article whileTap={{ scale: 0.98 }}
-      className="flex gap-3 overflow-hidden rounded-2xl border border-primary/10 bg-white p-3 shadow-[0_8px_24px_-6px_rgba(46,125,50,0.18)]">
+    <motion.a
+      href={l.property_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      whileTap={{ scale: 0.98 }}
+      className="flex cursor-pointer gap-3 overflow-hidden rounded-2xl border border-primary/10 bg-white p-3 shadow-[0_8px_24px_-6px_rgba(46,125,50,0.18)]">
       <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-muted">
         {l.image_url ? (
           <img src={l.image_url} alt={titleText} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
@@ -387,13 +391,13 @@ function ListingCard({ l }: { l: ListingDTO }) {
               <p className="text-[10px] text-muted-foreground">+관리비 ¥{l.maintenance_fee_yen.toLocaleString()}</p>
             )}
           </div>
-          <a href={l.property_url} target="_blank" rel="noopener noreferrer"
-            className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-sm active:scale-95">
+          <span
+            className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-sm">
             상세보기
-          </a>
+          </span>
         </div>
       </div>
-    </motion.article>
+    </motion.a>
   );
 }
 
