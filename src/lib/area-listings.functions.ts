@@ -50,6 +50,9 @@ export const getListingsForArea = createServerFn({ method: "GET" })
     if (error) {
       console.error("[getListingsForArea]", error);
     }
+    console.log("[getListingsForArea] input:", JSON.stringify(data));
+    console.log("[getListingsForArea] stationsNorm:", stationsNorm);
+    console.log("[getListingsForArea] primary rows count:", rows?.length ?? 0);
 
     const list = (rows ?? []) as (ListingDTO & { station_name_normalized?: string | null })[];
 
@@ -108,5 +111,7 @@ export const getListingsForArea = createServerFn({ method: "GET" })
       }
     }
 
-    return result.slice(0, Math.max(data.minResults, data.limit));
+    const final = result.slice(0, Math.max(data.minResults, data.limit));
+    console.log("[getListingsForArea] final count:", final.length, "uids:", final.map((r) => r.uid));
+    return final;
   });
