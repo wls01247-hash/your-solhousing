@@ -152,10 +152,17 @@ function ResultView({
           limit: 3,
           minResults: 3,
         },
+      }).then((r) => {
+        console.log("[result page] fetchListings resolved:", r);
+        return r;
       }),
     staleTime: 5 * 60 * 1000,
     enabled: !!topArea,
   });
+
+  useEffect(() => {
+    console.log("[result page] listings state:", { loadingListings, count: listings?.length, listings });
+  }, [listings, loadingListings]);
 
   return (
     <main className="relative min-h-screen bg-gradient-soft pb-16">
