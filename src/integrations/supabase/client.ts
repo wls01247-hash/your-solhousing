@@ -17,7 +17,7 @@ function createSupabaseClient() {
     console.error(`[Supabase] ${message}`);
     throw new Error(message);
   }
-
+console.log("FINAL_URL =", SUPABASE_URL);
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       storage: typeof window !== 'undefined' ? localStorage : undefined,
@@ -37,4 +37,5 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
     return Reflect.get(_supabase, prop, receiver);
   },
 });
-
+console.log("VITE_SUPABASE_URL =", import.meta.env.VITE_SUPABASE_URL);
+console.log("PROCESS_SUPABASE_URL =", process.env.SUPABASE_URL);
