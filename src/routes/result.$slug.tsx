@@ -252,6 +252,16 @@ function ResultView({
           <p className="mt-1 text-xs text-muted-foreground">
             {topArea?.area.name_ko} 우선 · 예산 ¥{answers.budget.toLocaleString()} 근접 매물
           </p>
+          <a
+            href="https://www.instagram.com/solhousing/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex items-center gap-2 rounded-2xl border border-primary/20 bg-gradient-to-r from-pink-50 via-white to-amber-50 px-4 py-3 text-[12px] font-bold leading-snug text-foreground shadow-sm transition active:scale-[0.98]"
+          >
+            <span className="text-base">📌</span>
+            <span className="flex-1">이번 주 추천 매물은 <span className="text-primary">인스타에서 계속 업데이트</span>됩니다.</span>
+            <Instagram size={16} className="shrink-0 text-[#d62976]" />
+          </a>
           <div className="mt-3 flex flex-col gap-3">
             {loadingListings && (<><ListingSkeleton /><ListingSkeleton /><ListingSkeleton /></>)}
             {!loadingListings && (!listings || listings.length === 0) && (
