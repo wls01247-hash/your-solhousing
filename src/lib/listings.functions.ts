@@ -128,6 +128,12 @@ const supabase = createClient(
     },
   }
 );
+const { error: pingError } = await supabase
+  .from("listings")
+  .select("uid")
+  .limit(1);
+
+console.log("[PING]", pingError);
     const cat = category(data.type);
 
     async function fetchByTypes(types: string[]): Promise<Row[]> {
