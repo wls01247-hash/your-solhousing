@@ -134,6 +134,8 @@ const { error: pingError } = await supabase
   .limit(1);
 
 console.log("[PING]", pingError);
+console.log("[URL]", supabaseUrl);
+
     const cat = category(data.type);
 
     async function fetchByTypes(types: string[]): Promise<Row[]> {
