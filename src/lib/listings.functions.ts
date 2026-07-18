@@ -105,16 +105,29 @@ function diversifyByArea(rows: Row[]): Row[] {
   return result;
 }
 
-export const getRecommendedListings = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => inputSchema.parse(input))
-  .handler(async ({ data }): Promise<ListingDTO[]> => {
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-    );
+const supabaseUrl =
+  process.env.SUPABASE_URL ??
+  process.env.VITE_SUPABASE_URL;
 
-    const limit = data.limit ?? 3;
+const supabaseKey =
+  process.env.SUPABASE_PUBLISHABLE_KEY ??
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error("Missing Supabase environment variables");
+}
+
+const supabase = createClient(
+  supabaseUrl,
+  supabaseKey,
+  {
+    auth: {
+      storage: undefined,
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+);
     const cat = category(data.type);
 
     async function fetchByTypes(types: string[]): Promise<Row[]> {
