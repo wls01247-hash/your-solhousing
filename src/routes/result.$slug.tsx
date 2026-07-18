@@ -140,7 +140,7 @@ function ResultView({
 
   const sizeRange = SIZE_BAND_RANGE[answers.size];
   const fetchListings = useServerFn(getListingsForArea);
-  const { data: listings, isLoading: loadingListings } = useQuery({
+  const { data: listings, isLoading: loadingListings, isError: listingsError } = useQuery({
     queryKey: ["area-listings", topArea?.area.slug, answers.budget, answers.size],
     queryFn: () =>
       fetchListings({
@@ -161,8 +161,8 @@ function ResultView({
   });
 
   useEffect(() => {
-    console.log("[result page] listings state:", { loadingListings, count: listings?.length, listings });
-  }, [listings, loadingListings]);
+    console.log("[result page] listings state:", { loadingListings, listingsError, count: listings?.length, listings });
+  }, [listings, loadingListings, listingsError]);
 
   return (
     <main className="relative min-h-screen bg-gradient-soft pb-16">
@@ -264,12 +264,17 @@ function ResultView({
           </a>
           <div className="mt-3 flex flex-col gap-3">
             {loadingListings && (<><ListingSkeleton /><ListingSkeleton /><ListingSkeleton /></>)}
-            {!loadingListings && (!listings || listings.length === 0) && (
+            {!loadingListings && listingsError && (
               <div className="rounded-2xl border border-dashed border-primary/20 bg-card p-5 text-center text-sm text-muted-foreground">
-                지금 모집중 매물이 없어요. 솔하우징에 문의해보세요.
+                추천 매물 조회 연결을 확인 중입니다. 잠시 후 다시 시도해주세요.
               </div>
             )}
-            {!loadingListings && listings?.map((l) => <ListingCard key={l.uid} l={l} />)}
+            {!loadingListings && !listingsError && (!listings || listings.length === 0) && (
+              <div className="rounded-2xl border border-dashed border-primary/20 bg-card p-5 text-center text-sm text-muted-foreground">
+                현재 추천 가능한 매물이 없습니다.
+              </div>
+            )}
+            {!loadingListings && !listingsError && listings?.map((l) => <ListingCard key={l.uid} l={l} />)}
           </div>
         </motion.div>
 
