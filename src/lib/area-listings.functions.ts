@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import type { Database } from "@/integrations/supabase/types";
 import type { ListingDTO } from "./listings.functions";
 
 const inputSchema = z.object({
@@ -19,11 +20,36 @@ function normalizeStation(s: string): string {
 export const getListingsForArea = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<ListingDTO[]> => {
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-    );
+    const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey =
+      process.env.SUPABASE_PUBLISHABLE_KEY ??
+      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+      process.env.SUPABASE_ANON_KEY ??
+      process.env.VITE_SUPABASE_ANON_KEY ??
+      import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("[getListingsForArea] missing Supabase env", {
+        hasSupabaseUrl: Boolean(supabaseUrl),
+        hasSupabaseKey: Boolean(supabaseKey),
+      });
+      throw new Error("추천 매물 데이터베이스 연결 설정이 없습니다.");
+    }
+
+    const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+      global: {
+        fetch: (input, init) => {
+          const headers = new Headers(init?.headers);
+          if (supabaseKey.startsWith("sb_") && headers.get("Authorization") === `Bearer ${supabaseKey}`) {
+            headers.delete("Authorization");
+          }
+          headers.set("apikey", supabaseKey);
+          return fetch(input, { ...init, headers });
+        },
+      },
+    });
 
     const stationsNorm = data.stations.map(normalizeStation);
 
@@ -48,7 +74,12 @@ export const getListingsForArea = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await q.limit(data.limit * 5);
     if (error) {
-      console.error("[getListingsForArea]", error);
+      console.error("[getListingsForArea] primary query failed", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
     }
     console.log("[getListingsForArea] input:", JSON.stringify(data));
     console.log("[getListingsForArea] stationsNorm:", stationsNorm);
@@ -88,7 +119,13 @@ export const getListingsForArea = createServerFn({ method: "GET" })
     // C. 적합 매물 0개 → 전체 available 중 예산이 가장 가까운 매물 3개 추천
     if (result.length < data.minResults) {
       const seenUids = new Set(result.map((r) => r.uid));
-      const { data: allRows } = await supabase
+      console.log("[getListingsForArea] fallback triggered", {
+        currentCount: result.length,
+        minResults: data.minResults,
+        reason: error ? "primary_query_failed_or_empty" : "primary_not_enough",
+      });
+
+      const { data: allRows, error: fallbackError } = await supabase
         .from("listings")
         .select(
           "uid, title, address, station_name, station_line, walk_minutes, rent_yen, maintenance_fee_yen, room_type, size_sqm, image_url, property_url",
@@ -96,6 +133,18 @@ export const getListingsForArea = createServerFn({ method: "GET" })
         .eq("contract_status", "available")
         .not("rent_yen", "is", null)
         .limit(500);
+
+      if (fallbackError) {
+        console.error("[getListingsForArea] fallback query failed", {
+          message: fallbackError.message,
+          code: fallbackError.code,
+          details: fallbackError.details,
+          hint: fallbackError.hint,
+        });
+        throw new Error("추천 매물 조회에 실패했습니다.");
+      }
+
+      console.log("[getListingsForArea] fallback rows count:", allRows?.length ?? 0);
 
       const fallback = ((allRows ?? []) as ListingDTO[])
         .filter((r) => !seenUids.has(r.uid))
