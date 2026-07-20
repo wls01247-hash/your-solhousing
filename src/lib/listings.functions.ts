@@ -105,36 +105,42 @@ function diversifyByArea(rows: Row[]): Row[] {
   return result;
 }
 
-const supabaseUrl =
-  process.env.SUPABASE_URL ??
-  process.env.VITE_SUPABASE_URL;
+export const getRecommendedListings = createServerFn({ method: "GET" })
+  .inputValidator((data) => inputSchema.parse(data))
+  .handler(async ({ data }) => {
+    const limit = data.limit ?? 3;
 
-const supabaseKey =
-  process.env.SUPABASE_PUBLISHABLE_KEY ??
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const supabaseUrl =
+      process.env.SUPABASE_URL ??
+      process.env.VITE_SUPABASE_URL;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Missing Supabase environment variables");
-}
+    const supabaseKey =
+      process.env.SUPABASE_PUBLISHABLE_KEY ??
+      process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const supabase = createClient(
-  supabaseUrl,
-  supabaseKey,
-  {
-    auth: {
-      storage: undefined,
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  }
-);
-const { error: pingError } = await supabase
-  .from("listings")
-  .select("uid")
-  .limit(1);
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Missing Supabase environment variables");
+    }
 
-console.log("[PING]", pingError);
-console.log("[URL]", supabaseUrl);
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseKey,
+      {
+        auth: {
+          storage: undefined,
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
+
+    const { error: pingError } = await supabase
+      .from("listings")
+      .select("uid")
+      .limit(1);
+
+    console.log("[PING]", pingError);
+    console.log("[URL]", supabaseUrl);
 
     const cat = category(data.type);
 
