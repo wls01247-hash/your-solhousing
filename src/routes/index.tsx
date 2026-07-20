@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "🏠 도쿄에서 당신이 살게 될 동네는? | 솔하우징" },
-      { name: "description", content: "15개 질문으로 알아보는 나의 진짜 주거 성향. 도쿄 자취 성향 테스트, 약 2분." },
+      { name: "description", content: "11개 질문으로 알아보는 나의 진짜 주거 성향. 도쿄 자취 성향 테스트, 약 1분." },
       { property: "og:title", content: "🏠 도쿄에서 당신이 살게 될 동네는?" },
       { property: "og:description", content: "나는 어디에 살아야 행복할까 — 도쿄 자취생 생존 테스트" },
     ],
@@ -68,7 +68,7 @@ function Index() {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="mt-4 text-center text-sm leading-relaxed text-muted-foreground"
         >
-          15개의 질문으로 알아보는<br />나의 진짜 주거 성향
+          11개의 질문으로 알아보는<br />나의 진짜 주거 성향
         </motion.p>
 
         <motion.div
@@ -78,7 +78,7 @@ function Index() {
           className="mt-8 flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs font-medium text-foreground/70 shadow-card backdrop-blur"
         >
           <span>⏱</span>
-          <span>소요시간 약 2분 · 총 15문항</span>
+          <span>소요시간 약 1분 · 총 11문항</span>
         </motion.div>
 
         <motion.div
